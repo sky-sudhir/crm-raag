@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+
+:root {
+  /* Light theme - Warm light background with orange accents */
+  --background: hsl(35, 25%, 97%);
+  --foreground: hsl(25, 30%, 18%);
+  --card: hsl(35, 25%, 97%);
+  --card-foreground: hsl(25, 30%, 18%);
+  --popover: hsl(35, 25%, 97%);
+  --popover-foreground: hsl(25, 30%, 18%);
+  --primary: hsl(25, 85%, 55%); /* Vibrant orange */
+  --primary-foreground: hsl(35, 25%, 97%);
+  --secondary: hsl(30, 20%, 94%);
+  --secondary-foreground: hsl(25, 30%, 22%);
+  --muted: hsl(30, 20%, 94%);
+  --muted-foreground: hsl(25, 15%, 50%);
+  --accent: hsl(15, 80%, 60%); /* Deep orange accent */
+  --accent-foreground: hsl(35, 25%, 97%);
+  --destructive: hsl(358, 75%, 60%);
+  --destructive-foreground: hsl(35, 25%, 97%);
+  --border: hsl(30, 15%, 90%);
+  --input: hsl(30, 15%, 90%);
+  --ring: hsl(25, 85%, 55%);
+  --radius: 0.5rem;
+}
+
+.dark {
+  /* Dark theme - Deep charcoal with orange accents */
+  --background: hsl(20, 15%, 12%);
+  --foreground: hsl(30, 15%, 92%);
+  --card: hsl(20, 15%, 12%);
+  --card-foreground: hsl(30, 15%, 92%);
+  --popover: hsl(20, 15%, 12%);
+  --popover-foreground: hsl(30, 15%, 92%);
+  --primary: hsl(25, 90%, 55%); /* Rich dark orange */
+  --primary-foreground: hsl(20, 15%, 12%);
+  --secondary: hsl(20, 15%, 18%);
+  --secondary-foreground: hsl(30, 15%, 92%);
+  --muted: hsl(20, 15%, 18%);
+  --muted-foreground: hsl(30, 15%, 70%);
+  --accent: hsl(15, 85%, 50%); /* Deep orange accent */
+  --accent-foreground: hsl(30, 15%, 92%);
+  --destructive: hsl(358, 65%, 50%);
+  --destructive-foreground: hsl(30, 15%, 92%);
+  --border: hsl(20, 15%, 20%);
+  --input: hsl(20, 15%, 20%);
+  --ring: hsl(25, 90%, 55%);
+  --radius: 0.5rem;
+}
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+.text-gradient {
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+}
+
+.animate-pulse {
+  animation: pulse 3s infinite;
+}
+
+.animation-delay-500 {
+  animation-delay: 1.5s;
+}
