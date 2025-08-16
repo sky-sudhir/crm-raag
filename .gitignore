@@ -1,0 +1,51 @@
+# Byte-compiled / cache files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+*.egg
+
+# Virtual environment
+.venv/
+env/
+venv/
+
+# Environment variables
+.env
+.env.*
+
+# VS Code settings (optional, if you're using VS Code)
+.vscode/
+
+# Pytest and coverage
+.cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Migrations (if you don't want to track generated alembic versions)
+alembic/versions/
+
+# Logs
+*.log
+
+# Docker
+*.pid
+*.tar
+*.bak
+docker-compose.override.yml
+
+# mypy / other tools
+.mypy_cache/
+.dmypy.json
+.pyre/
+.pytype/
+
+# Jupyter notebooks (if you use any)
+.ipynb_checkpoints/
+
+# Mac/Linux/Windows system files
+.DS_Store
+Thumbs.db
