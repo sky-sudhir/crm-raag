@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 
 
 # Import all models to ensure they are registered with Base
+# from api.models import customer, restaurant, menu_item, order, order_item, review, user
 from api.db.database import Base, engine
 
 # Import all routers
