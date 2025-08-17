@@ -23,6 +23,7 @@ class Organization(Base):
     email: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     schema: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    subdomain: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     status: Mapped[OrgStatus] = mapped_column(Enum(OrgStatus), default=OrgStatus.ACTIVE)

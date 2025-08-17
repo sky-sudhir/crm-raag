@@ -14,7 +14,7 @@ class CreateOrganizationRequest(BaseModel):
     email: EmailStr
     org_name: str   # Organization name (global)
     name: str       # Owner user name
-    schema: str     # Desired schema name
+    subdomain:str
     password: str
     status: str = "ACTIVE"
     rag_type: str = "BASIC"
