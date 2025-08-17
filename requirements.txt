@@ -1,5 +1,11 @@
 fastapi
-uvicorn
-sqlalchemy
-pydantic
+uvicorn[standard]
+sqlalchemy[asyncio]
+pydantic[email]
 aiosqlite
+asyncpg
+psycopg2-binary
+email-validator
+python-dotenv
+python-multipart
+alembic
