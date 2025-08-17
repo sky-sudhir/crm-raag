@@ -3,7 +3,7 @@ from sqlalchemy.orm import DeclarativeBase
 
 # Postgres URL format:
 # postgresql+asyncpg://username:password@host:port/dbname
-DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5433/mydb"
+DATABASE_URL = "postgresql+asyncpg://postgres:root@localhost:5432/service1"
 
 class Base(DeclarativeBase):
     pass
