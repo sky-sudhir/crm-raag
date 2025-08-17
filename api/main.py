@@ -2,14 +2,13 @@ from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from contextlib import asynccontextmanager
 
+
 # Import all models to ensure they are registered with Base
 # from api.models import customer, restaurant, menu_item, order, order_item, review, user
 from api.db.database import Base, engine
 
 # Import all routers
-from api.routers import (
-    user as user_router
-)
+from api.routers import user_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -31,4 +30,3 @@ def home_page():
 
 # Include all routers
 app.include_router(user_router.router)
-
