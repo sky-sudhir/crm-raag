@@ -1,23 +1,47 @@
-# api/models/user.py
-import enum
-import uuid
-from sqlalchemy import String, Boolean, DateTime, func, Enum
-from sqlalchemy.orm import Mapped, mapped_column, declarative_base
-from datetime import datetime
+import datetime
+import random
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-Base = declarative_base()
+from api.models.organization import Organization
+from api.models.otp import OTP
+from api.utils.email_sender import send_email
+from api.utils.util_response import APIResponse
 
-class UserRole(str, enum.Enum):
-    ROLE_ADMIN = "ROLE_ADMIN"
-    ROLE_USER = "ROLE_USER"
+class UserService:
+    def __init__(self, session: AsyncSession):
+        self.session = session
 
-# Just a template, not schema-bound
-class UserTemplate:
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    name: Mapped[str] = mapped_column(String(100), nullable=False)
-    email: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
-    password: Mapped[str] = mapped_column(String(255), nullable=False)
-    role: Mapped[UserRole] = mapped_column(Enum(UserRole), default=UserRole.ROLE_USER, nullable=False)
-    is_owner: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    
+    # async def signup(self, email: str):
+    #     otp_code = random.randint(100000, 999999)
+    #     expires_at = datetime.now() + datetime.timedelta(minutes=5)
+
+    #     org= await self.session.execute(
+    #         select(Organization).where(Organization.email == email)
+    #     )
+
+    #     org = org.scalar_one_or_none()
+
+    #     if org:
+    #         raise APIResponse(message="Organization already exists with this email").model_dump()
+
+    #     # Check if email already exists in OTP table
+    #     result = await self.session.execute(select(OTP).where(OTP.email == email))
+    #     otp_entry = result.scalar_one_or_none()
+
+    #     if otp_entry:
+    #         # Update existing OTP
+    #         otp_entry.otp = otp_code
+    #         otp_entry.expires_at = expires_at
+    #     else:
+    #         # Create new OTP record
+    #         otp_entry = OTP(email=email, otp=otp_code, expires_at=expires_at)
+    #         self.session.add(otp_entry)
+
+    #     await self.session.commit()
+
+    #     # Send OTP via email
+    #     await send_email(email, otp_code)
+
+    #     return APIResponse(message="OTP sent to email").model_dump()

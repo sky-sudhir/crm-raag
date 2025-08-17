@@ -1,5 +1,6 @@
 # api/routers/auth.py
 # api/routers/auth.py
+from http import HTTPStatus
 import random
 import uuid
 import enum
@@ -9,15 +10,15 @@ from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import text
-from sqlalchemy.orm import declarative_base
 
-from api.db.database import get_db, Base   # ✅ ensure Base comes from your db.database
+from api.db.database import get_db, Base
 from api.models.otp import OTP
 from api.models.organization import Organization
+from api.services.auth_service import AuthService
 from api.utils.email_sender import send_email
 from api.utils.security import hash_password  # ✅ create this util if not exists
 from api.models.user import UserRole, get_user_model  # ✅ you need to expose UserRole + dynamic user model factory
-from api.schemas.organization import CreateOrganizationRequest, VerifyOTPRequest
+from api.schemas.organization import CreateOrganizationRequest
 from api.utils.response import create_response
 
 
@@ -25,30 +26,9 @@ from api.utils.response import create_response
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
-@router.post("/signup")
+@router.post("/signup",status_code=HTTPStatus.OK)
 async def signup(email: str, db: AsyncSession = Depends(get_db)):
-    otp_code = random.randint(100000, 999999)
-    expires_at = datetime.utcnow() + timedelta(minutes=5)
-
-    # Check if email already exists in OTP table
-    result = await db.execute(select(OTP).where(OTP.email == email))
-    otp_entry = result.scalar_one_or_none()
-
-    if otp_entry:
-        # Update existing OTP
-        otp_entry.otp = otp_code
-        otp_entry.expires_at = expires_at
-    else:
-        # Create new OTP record
-        otp_entry = OTP(email=email, otp=otp_code, expires_at=expires_at)
-        db.add(otp_entry)
-
-    await db.commit()
-
-    # Send OTP via email
-    await send_email(email, otp_code)
-
-    return {"message": "OTP sent to email"}
+    return await AuthService(db).signup(email)
 
 
 @router.post("/verify-otp")

@@ -1,3 +1,4 @@
+import enum
 from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
 from typing import Optional
@@ -30,3 +31,8 @@ class UserRead(UserBase):
     model_config = {
         "from_attributes": True  # Enables creating the schema from an ORM model
     }
+
+
+class UserRole(str, enum.Enum):
+    ROLE_ADMIN = "ROLE_ADMIN"
+    ROLE_USER = "ROLE_USER"

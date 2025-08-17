@@ -29,11 +29,10 @@ app = FastAPI(
 
 @app.exception_handler(HTTPException)
 async def global_exception_handler(request: Request, exc: HTTPException):
-    return JSONResponse(
+     return JSONResponse(
         status_code=exc.status_code,
-        content=APIResponse(
-            data=None,
-            total_count=0,
+        content=ErrorResponse(
+            stack=None,
             message=exc.detail,
             success=False
         ).model_dump()
