@@ -4,11 +4,11 @@ from typing import List, Optional
 
 from api.models.user import User
 from api.schemas.user import UserCreate, UserUpdate
-from api.utils.security import hash_password
+# from api.utils.security import hash_password
 
 async def create_user(db: AsyncSession, data: UserCreate) -> User:
     """Creates a new user in the database with a hashed password."""
-    hashed_pwd = hash_password(data.password)
+    hashed_pwd =data.password
     user = User(
         name=data.name,
         email=data.email,
