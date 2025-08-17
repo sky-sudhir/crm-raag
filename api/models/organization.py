@@ -19,6 +19,8 @@ class RagType(str, enum.Enum):
 class Organization(Base):
     __tablename__ = "organizations"
 
+    __table_args__ = {"schema": "public"}
+
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     email: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)

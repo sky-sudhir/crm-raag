@@ -12,6 +12,7 @@ from api.routers import user_router, auth as auth_router
 from api.routers import user_router
 from api.utils.util_error import ErrorResponse
 from api.utils.util_response import APIResponse
+from api.middleware.tenant import TenantMiddleware
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -26,6 +27,8 @@ app = FastAPI(
     version="3.0.0",
     lifespan=lifespan
 )
+
+app.add_middleware(TenantMiddleware)
 
 @app.exception_handler(HTTPException)
 async def global_exception_handler(request: Request, exc: HTTPException):
