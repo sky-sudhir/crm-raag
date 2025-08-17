@@ -9,3 +9,5 @@ email-validator
 python-dotenv
 python-multipart
 alembic
+aiosmtplib
+passlib[bcrypt]

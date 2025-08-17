@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from api.db.database import Base, engine
 
 # Import all routers
-from api.routers import user_router
+from api.routers import user_router, auth as auth_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -26,7 +26,8 @@ app = FastAPI(
 
 @app.get("/")
 def home_page():
-    return RedirectResponse("/docs")
+    return "I am up and running! 🚀"
 
 # Include all routers
 app.include_router(user_router.router)
+app.include_router(auth_router.router)
