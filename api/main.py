@@ -3,12 +3,12 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from contextlib import asynccontextmanager
 
-
 # Import all models to ensure they are registered with Base
 # from api.models import customer, restaurant, menu_item, order, order_item, review, user
 from api.db.database import Base, engine
 
 # Import all routers
+from api.routers import user_router, auth as auth_router
 from api.routers import user_router
 from api.utils.util_error import ErrorResponse
 from api.utils.util_response import APIResponse
@@ -55,7 +55,8 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 @app.get("/")
 def home_page():
-    return RedirectResponse("/docs")
+    return "I am up and running! 🚀"
 
 # Include all routers
 app.include_router(user_router.router)
+app.include_router(auth_router.router)
