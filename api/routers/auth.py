@@ -18,6 +18,8 @@ from api.utils.email_sender import send_email
 from api.utils.security import hash_password  # ✅ create this util if not exists
 from api.models.user import UserRole, get_user_model  # ✅ you need to expose UserRole + dynamic user model factory
 from api.schemas.organization import CreateOrganizationRequest, VerifyOTPRequest
+from api.utils.response import create_response
+
 
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -133,22 +135,23 @@ async def create_organization(
     await db.refresh(owner)
     print(f"🎉 Org and Owner refreshed from DB. OrgID={org.id}, OwnerID={owner.id}")
 
-    return {
-        "organization": {
-            "id": str(org.id),
-            "email": org.email,
-            "name": org.name,
-            "schema": org.schema,
-            "rag_type": org.rag_type.value,
-            "status": org.status.value,
-            "created_at": org.created_at,
-        },
-        "user": {
-            "id": owner.id,
-            "name": owner.name,
-            "email": owner.email,
-            "role": owner.role.value,
-            "is_owner": owner.is_owner,
-            "created_at": owner.created_at,
-        }
+    org_data= {
+        "id": str(org.id),
+        "email": org.email,
+        "name": org.name,
+        "schema": org.schema,
+        "rag_type": org.rag_type.value,
+        "status": org.status.value,
+        "created_at": org.created_at,
     }
+
+    user_data= {
+        "id": owner.id,
+        "name": owner.name,
+        "email": owner.email,
+        "role": owner.role.value,
+        "is_owner": owner.is_owner,
+        "created_at": owner.created_at,
+    }
+    return create_response( data={"organization": org_data, "user": user_data}, message="Organization and owner created successfully")   
+

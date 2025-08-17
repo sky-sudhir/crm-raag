@@ -1,7 +1,7 @@
-from fastapi import FastAPI
-from fastapi.responses import RedirectResponse
+import traceback
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse, RedirectResponse
 from contextlib import asynccontextmanager
-
 
 # Import all models to ensure they are registered with Base
 # from api.models import customer, restaurant, menu_item, order, order_item, review, user
@@ -9,6 +9,9 @@ from api.db.database import Base, engine
 
 # Import all routers
 from api.routers import user_router, auth as auth_router
+from api.routers import user_router
+from api.utils.util_error import ErrorResponse
+from api.utils.util_response import APIResponse
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -23,6 +26,32 @@ app = FastAPI(
     version="3.0.0",
     lifespan=lifespan
 )
+
+@app.exception_handler(HTTPException)
+async def global_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=APIResponse(
+            data=None,
+            total_count=0,
+            message=exc.detail,
+            success=False
+        ).model_dump()
+    )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    # logging.error(f"Unhandled exception: {exc}", exc_info=True)
+    stack_trace = traceback.format_exc()
+    return JSONResponse(
+        status_code=500,
+        content=ErrorResponse(
+            stack=stack_trace,
+            message="Interal Server Error",
+            success=False
+        ).model_dump()
+    )
 
 @app.get("/")
 def home_page():
