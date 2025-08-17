@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase
 
-DATABASE_URL = "sqlite+aiosqlite:///./restaurants.db"
+DATABASE_URL = "postgresql+asyncpg://postgres:root@localhost:5432/service1"
 
 # SQLAlchemy base class
 class Base(DeclarativeBase):
