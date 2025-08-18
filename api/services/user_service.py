@@ -1,10 +1,13 @@
 import datetime
 import random
+from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.models.organization import Organization
 from api.models.otp import OTP
+from api.models.user import User
+from api.schemas.user import UserRead
 from api.utils.email_sender import send_email
 from api.utils.util_response import APIResponse
 
@@ -13,35 +16,11 @@ class UserService:
         self.session = session
 
     
-    # async def signup(self, email: str):
-    #     otp_code = random.randint(100000, 999999)
-    #     expires_at = datetime.now() + datetime.timedelta(minutes=5)
+    async def get_user_by_email(self, email: str)->UserRead:
+        print("Current user:", email)
 
-    #     org= await self.session.execute(
-    #         select(Organization).where(Organization.email == email)
-    #     )
-
-    #     org = org.scalar_one_or_none()
-
-    #     if org:
-    #         raise APIResponse(message="Organization already exists with this email").model_dump()
-
-    #     # Check if email already exists in OTP table
-    #     result = await self.session.execute(select(OTP).where(OTP.email == email))
-    #     otp_entry = result.scalar_one_or_none()
-
-    #     if otp_entry:
-    #         # Update existing OTP
-    #         otp_entry.otp = otp_code
-    #         otp_entry.expires_at = expires_at
-    #     else:
-    #         # Create new OTP record
-    #         otp_entry = OTP(email=email, otp=otp_code, expires_at=expires_at)
-    #         self.session.add(otp_entry)
-
-    #     await self.session.commit()
-
-    #     # Send OTP via email
-    #     await send_email(email, otp_code)
-
-    #     return APIResponse(message="OTP sent to email").model_dump()
+        result = await self.session.execute(select(User).where(User.email == email))
+        result= result.scalar_one_or_none()
+        if not result:
+            raise HTTPException(status_code=404, detail="User not found")
+        return UserRead.model_validate(result) if result else None

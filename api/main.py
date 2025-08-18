@@ -8,11 +8,12 @@ from contextlib import asynccontextmanager
 from api.db.database import Base, engine
 
 # Import all routers
-from api.routers import user_router, auth as auth_router
-from api.routers import user_router
+
+from api.routers.user import router as user_router
+from api.routers.auth import router as auth_router
 from api.utils.util_error import ErrorResponse
-from api.utils.util_response import APIResponse
 from api.middleware.tenant import TenantMiddleware
+from fastapi.middleware.cors import CORSMiddleware
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -27,7 +28,19 @@ app = FastAPI(
     version="3.0.0",
     lifespan=lifespan
 )
+# origins = [
+#     "http://localhost:3000",   # React local dev
+#     "http://127.0.0.1:3000",  # sometimes needed separately
+#     "https://yourfrontend.com"  # production domain
+# ]
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],          # list of allowed origins
+    allow_credentials=True,
+    allow_methods=["*"],            # allow all HTTP methods
+    allow_headers=["*"],            # allow all headers
+)
 app.add_middleware(TenantMiddleware)
 
 @app.exception_handler(HTTPException)
@@ -60,5 +73,5 @@ def home_page():
     return "I am up and running! 🚀"
 
 # Include all routers
-app.include_router(user_router.router)
-app.include_router(auth_router.router)
+app.include_router(user_router)
+app.include_router(auth_router)

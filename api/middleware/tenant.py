@@ -3,20 +3,16 @@
 from fastapi import Request, HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy import select, text
-
-# Import the "messenger" ContextVar from our tenant db file
 from api.db.tenant import tenant_schema 
-
-# Import the session factory for our validation check
 from api.db.database import AsyncSessionLocal 
-
-# Import your public Organization model to look up tenants
 from api.models.organization import Organization 
 
 class TenantMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         # Get hostname from the request, e.g., "orange.localhost" or "localhost"
+        # print("Request hostname:", request.headers.get("hostname"))
         hostname = request.headers.get("host", "").split(":")[0]
+        # hostname = "orange"
         
         print("hostname", hostname)
         # This is your main domain for public operations like signup.
@@ -61,6 +57,8 @@ class TenantMiddleware(BaseHTTPMiddleware):
         # 4. The "message passing": We set the schema name in the ContextVar.
         # This makes it available to the `get_db_tenant_session` dependency.
         token = tenant_schema.set(schema_name)
+        print("subdomain", subdomain)
+
         
         # Now, we let the request proceed to the actual endpoint.
         response = await call_next(request)

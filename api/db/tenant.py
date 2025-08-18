@@ -10,7 +10,7 @@ from .database import AsyncSessionLocal
 tenant_schema: ContextVar[str] = ContextVar("tenant_schema", default="public")
 
 # --- DEPENDENCY #1: For Tenant-Specific Operations ---
-async def get_db_tenant_session() -> AsyncGenerator[AsyncSession, None]:
+async def get_db_tenant() -> AsyncGenerator[AsyncSession, None]:
     """
     Yields a session that is locked to the current tenant's schema.
     
@@ -26,15 +26,16 @@ async def get_db_tenant_session() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 # --- DEPENDENCY #2: For Public/Global Operations ---
-async def get_db_public_session() -> AsyncGenerator[AsyncSession, None]:
+async def get_db_public() -> AsyncGenerator[AsyncSession, None]:
     """
     Yields a session that is locked to the public schema.
     
     Use this for operations that should always happen on the public schema,
     like creating a new organization or looking up a tenant during validation.
     """
+    print("Using public schema for database operations")
     async with AsyncSessionLocal() as session:
         # We explicitly set the search_path to 'public' to ensure we are not
         # accidentally operating within a tenant's schema.
-        await session.execute(text('SET search_path TO "public"'))
+        # await session.execute(text('SET search_path TO "public"'))
         yield session
