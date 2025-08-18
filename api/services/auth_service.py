@@ -1,18 +1,28 @@
 import datetime
 import random
+from re import sub
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import select,text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.db.database import Base
 from api.models.organization import Organization
 from api.models.otp import OTP
+from api.models.user import get_user_model
+from api.schemas.organization import CreateOrganizationRequest
+from api.schemas.user import UserRole
 from api.utils.email_sender import send_email
+from api.utils.schema_manager import SchemaManager
+from api.utils.security import hash_password
 from api.utils.util_response import APIResponse
+
+
 
 from sqlalchemy.ext.asyncio import AsyncSession
 class AuthService:
     def __init__(self, session: AsyncSession):
         self.session = session
+        self.schema_manager = SchemaManager(session)
 
     async def signup(self, email: str):
    
@@ -61,3 +71,75 @@ class AuthService:
 
         # ✅ OTP verified — you can create Organization/User entry here
         return APIResponse(message="OTP verified successfully, user can be logged in").model_dump()
+
+    async def create_organization_with_owner(self, payload):
+        schema_name = payload.subdomain.lower()
+
+        async with self.session.begin():  # single transaction
+            # 1. Check if org already exists
+            result = await self.session.execute(
+                select(Organization).where(Organization.email == payload.email)
+            )
+            existing_org = result.scalar_one_or_none()
+            if existing_org:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Organization with this email already exists"
+                )
+
+            # 2. Ensure schema
+            await self.schema_manager.ensure_schema(schema_name)
+
+            # 3. Create org record
+            org = Organization(
+                email=payload.email,
+                name=payload.org_name,
+                schema=schema_name,
+                subdomain=payload.subdomain,
+                status=payload.status.upper(),
+                rag_type=payload.rag_type.upper(),
+            )
+            self.session.add(org)
+
+            # 4. Create user table
+            User = get_user_model(schema_name)
+            await self.schema_manager.create_tables([User])
+
+            # 5. Insert owner user
+            hashed_pw = hash_password(payload.password)
+            owner = User(
+                name=payload.name,
+                email=payload.email,
+                password=hashed_pw,
+                role=UserRole.ROLE_ADMIN,
+                is_owner=True,
+            )
+            self.session.add(owner)
+
+        # 🔄 refresh after commit
+        await self.session.refresh(org)
+        await self.session.refresh(owner)
+
+        return APIResponse(
+            message="Organization and owner created successfully",
+            data={
+                "organization": {
+                    "id": str(org.id),
+                    "email": org.email,
+                    "name": org.name,
+                    # "schema": org.schema,
+                    "subdomain": org.subdomain,
+                    "rag_type": org.rag_type.value,
+                    "status": org.status.value,
+                    "created_at": org.created_at,
+                },
+                "owner": {
+                    "id": owner.id,
+                    "name": owner.name,
+                    "email": owner.email,
+                    "role": owner.role.value,
+                    "is_owner": owner.is_owner,
+                    "created_at": owner.created_at,
+                },
+            },
+        )
