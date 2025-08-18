@@ -1,23 +1,26 @@
-# api/models/user.py
-import enum
-import uuid
-from sqlalchemy import String, Boolean, DateTime, func, Enum
-from sqlalchemy.orm import Mapped, mapped_column, declarative_base
-from datetime import datetime
+import datetime
+import random
+from fastapi import HTTPException
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-Base = declarative_base()
+from api.models.organization import Organization
+from api.models.otp import OTP
+from api.models.user import User
+from api.schemas.user import UserRead
+from api.utils.email_sender import send_email
+from api.utils.util_response import APIResponse
 
-class UserRole(str, enum.Enum):
-    ROLE_ADMIN = "ROLE_ADMIN"
-    ROLE_USER = "ROLE_USER"
+class UserService:
+    def __init__(self, session: AsyncSession):
+        self.session = session
 
-# Just a template, not schema-bound
-class UserTemplate:
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    name: Mapped[str] = mapped_column(String(100), nullable=False)
-    email: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
-    password: Mapped[str] = mapped_column(String(255), nullable=False)
-    role: Mapped[UserRole] = mapped_column(Enum(UserRole), default=UserRole.ROLE_USER, nullable=False)
-    is_owner: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    
+    async def get_user_by_email(self, email: str)->UserRead:
+        print("Current user:", email)
+
+        result = await self.session.execute(select(User).where(User.email == email))
+        result= result.scalar_one_or_none()
+        if not result:
+            raise HTTPException(status_code=404, detail="User not found")
+        return UserRead.model_validate(result) if result else None

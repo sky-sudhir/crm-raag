@@ -1,3 +1,4 @@
+import enum
 from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
 from typing import Optional
@@ -24,9 +25,13 @@ class UserUpdate(BaseModel):
 class UserRead(UserBase):
     """Schema for reading user data. Excludes sensitive info like password."""
     id: str
-    created_at: datetime
-    updated_at: datetime
+    
 
     model_config = {
         "from_attributes": True  # Enables creating the schema from an ORM model
     }
+
+
+class UserRole(str, enum.Enum):
+    ROLE_ADMIN = "ROLE_ADMIN"
+    ROLE_USER = "ROLE_USER"
