@@ -5,13 +5,10 @@ from sqlalchemy import String, Boolean, DateTime, func, Enum
 from sqlalchemy.orm import Mapped, mapped_column
 from api.db.database import Base
 from datetime import datetime
-
-
 class UserRole(str, enum.Enum):
     """Enumeration for user roles."""
     ROLE_ADMIN = "ROLE_ADMIN"
     ROLE_USER = "ROLE_USER"
-
 
 def get_user_model(schema: str):
     """Dynamically create a User model for a specific schema."""
@@ -33,7 +30,6 @@ def get_user_model(schema: str):
         )
 
     return User
-
 
 class User(Base):
         __tablename__ = "users"

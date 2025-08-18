@@ -2,26 +2,30 @@ import traceback
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from contextlib import asynccontextmanager
-
-# Import all models to ensure they are registered with Base
-# from api.models import customer, restaurant, menu_item, order, order_item, review, user
 from api.db.database import Base, engine
-
-# Import all routers
 
 from api.routers.user import router as user_router
 from api.routers.auth import router as auth_router
+from api.routers.chat_router import router as chat_router
+from api.routers.admin_router import router as admin_router
 from api.utils.util_error import ErrorResponse
 from api.middleware.tenant import TenantMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create all tables
+    """
+    On application startup, create only the tables that belong to the public schema.
+    Tenant-specific tables are created dynamically during the onboarding process.
+    """
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+        public_tables = [
+            table for table in Base.metadata.sorted_tables if table.schema == "public"
+        ]
+        await conn.run_sync(Base.metadata.create_all, tables=public_tables)
     yield
 
+# ... (the rest of your main.py file is unchanged) ...
 app = FastAPI(
     title="CRM APP",
     description="CRM APP",
@@ -75,3 +79,5 @@ def home_page():
 # Include all routers
 app.include_router(user_router)
 app.include_router(auth_router)
+app.include_router(admin_router) 
+app.include_router(chat_router)
