@@ -2,18 +2,13 @@ import traceback
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from contextlib import asynccontextmanager
-
-# Import all models to ensure they are registered with Base
-# from api.models import customer, restaurant, menu_item, order, order_item, review, user
 from api.db.database import Base, engine
 
 # Import all routers
-from api.routers import user_router, auth as auth_router
 from api.routers import user_router
 from api.utils.util_error import ErrorResponse
-from api.utils.util_response import APIResponse
 from api.middleware.tenant import TenantMiddleware
-
+from api.routers import user_router, auth as auth_router, admin_router, chat_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Create all tables
@@ -62,3 +57,5 @@ def home_page():
 # Include all routers
 app.include_router(user_router.router)
 app.include_router(auth_router.router)
+app.include_router(admin_router.router) 
+app.include_router(chat_router.router)
