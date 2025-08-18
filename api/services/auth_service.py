@@ -1,17 +1,18 @@
+# api/services/auth_service.py
 import datetime
 import random
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 
-# Import all necessary models, schemas, and services
-from api.models.organization import Organization
+from api.db.database import Base
+# Import the Enum types along with the model
+from api.models.organization import Organization, OrgStatus, RagType
 from api.models.otp import OTP
-from api.models.user import UserRole, get_user_model # Use the correctly named factory
+from api.models.user import UserRole, get_user_model, User as UserBlueprint
 from api.schemas.organization import CreateOrganizationRequest
-from api.services.onboarding_service import OnboardingService
 from api.utils.email_sender import send_email
-from api.utils.schema_manager import SchemaManager
 from api.utils.security import hash_password, verify_password, create_jwt_token
 from api.utils.util_response import APIResponse
 from api.db.tenant import tenant_schema
@@ -19,11 +20,8 @@ from api.db.tenant import tenant_schema
 class AuthService:
     def __init__(self, session: AsyncSession):
         self.session = session
-        self.schema_manager = SchemaManager(session)
 
-    # ... (Your signup, verify_otp, and login methods remain here without changes) ...
     async def signup(self, email: str):
-        # ... (no changes)
         otp_code = random.randint(100000, 999999)
         expires_at = datetime.datetime.now() + datetime.timedelta(minutes=5)
         org = await self.session.execute(select(Organization).where(Organization.email == email))
@@ -42,7 +40,6 @@ class AuthService:
         return APIResponse(message="OTP sent to email")
 
     async def verify_otp(self, email: str, otp: int):
-        # ... (no changes)
         result = await self.session.execute(select(OTP).where(OTP.email == email))
         otp_entry = result.scalar_one_or_none()
         if not otp_entry:
@@ -54,85 +51,75 @@ class AuthService:
         return APIResponse(message="OTP verified successfully")
 
     async def login(self, email: str, password: str):
-        # ... (no changes)
-        from api.models.user import User # Import the simple blueprint for login
-        user_result = await self.session.execute(select(User).where(User.email == email))
+        user_result = await self.session.execute(select(UserBlueprint).where(UserBlueprint.email == email))
         user = user_result.scalar_one_or_none()
         if not user or not verify_password(password, user.password):
             raise HTTPException(status_code=400, detail="Invalid email or password")
         token = create_jwt_token(user_id=user.id, email=user.email, role=user.role, tenant=tenant_schema.get())
         return APIResponse(message="Login successful", data={"token": token})
 
+    def _get_tenant_models(self):
+        """Gets all SQLAlchemy Table objects that are NOT in the public schema."""
+        return [table for table in Base.metadata.sorted_tables if table.schema != "public"]
 
-
-    async def create_organization_with_owner(self, payload):
+    async def create_organization_with_owner(self, payload: CreateOrganizationRequest):
         schema_name = payload.subdomain.lower()
 
-        async with self.session.begin():  # single transaction
-            # 1. Check if org already exists
-            result = await self.session.execute(
-                select(Organization).where(Organization.email == payload.email)
+        async with self.session.begin():
+            stmt = select(Organization).where(
+                (Organization.email == payload.email) | (Organization.subdomain == payload.subdomain)
             )
-            existing_org = result.scalar_one_or_none()
-            if existing_org:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Organization with this email already exists"
-                )
+            result = await self.session.execute(stmt)
+            if result.scalar_one_or_none():
+                raise HTTPException(status_code=400, detail="Org with this email or subdomain already exists.")
 
-            # 2. Ensure schema
-            await self.schema_manager.ensure_schema(schema_name)
+            await self.session.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema_name}"'))
 
-            # 3. Create org record
-            org = Organization(
-                email=payload.email,
-                name=payload.org_name,
-                schema=schema_name,
+            # FIX 1: Convert incoming strings to their corresponding Enum types
+            new_org = Organization(
+                email=payload.email, name=payload.org_name, schema=schema_name,
                 subdomain=payload.subdomain,
-                status=payload.status.upper(),
-                rag_type=payload.rag_type.upper(),
+                status=OrgStatus(payload.status.upper()),
+                rag_type=RagType(payload.rag_type.upper()),
             )
-            self.session.add(org)
+            self.session.add(new_org)
 
-            # 4. Create user table
-            User = get_user_model(schema_name)
-            await self.schema_manager.create_tables([User])
-
-            # 5. Insert owner user
-            hashed_pw = hash_password(payload.password)
-            owner = User(
-                name=payload.name,
-                email=payload.email,
-                password=hashed_pw,
-                role=UserRole.ROLE_ADMIN,
-                is_owner=True,
+            async with self.session.begin_nested():
+                conn = await self.session.connection()
+                tenant_tables = self._get_tenant_models()
+                for table in tenant_tables:
+                    table.schema = schema_name
+                await conn.run_sync(Base.metadata.create_all, tables=tenant_tables)
+                for table in tenant_tables:
+                    table.schema = None
+            
+            UserForSchema = get_user_model(schema_name)
+            hashed_password = hash_password(payload.password)
+            owner_user = UserForSchema(
+                name=payload.name, email=payload.email, password=hashed_password,
+                role=UserRole.ROLE_ADMIN, is_owner=True,
             )
-            self.session.add(owner)
+            self.session.add(owner_user)
+            await self.session.flush()
 
-        # 🔄 refresh after commit
-        await self.session.refresh(org)
-        await self.session.refresh(owner)
+        # FIX 2: Refresh the new_org object to load the Enum members from the DB
+        await self.session.refresh(new_org)
 
+        # Now, new_org.rag_type and new_org.status are Enum members, so .value will work correctly.
         return APIResponse(
             message="Organization and owner created successfully",
             data={
                 "organization": {
-                    "id": str(org.id),
-                    "email": org.email,
-                    "name": org.name,
-                    # "schema": org.schema,
-                    "subdomain": org.subdomain,
-                    "rag_type": org.rag_type.value,
-                    "status": org.status.value,
-                    "created_at": org.created_at,
+                    "id": str(new_org.id), "email": new_org.email, "name": new_org.name,
+                    "subdomain": new_org.subdomain,
+                    "rag_type": new_org.rag_type.value,
+                    "status": new_org.status.value,
+                    "created_at": new_org.created_at,
                 },
                 "owner": {
-                    "id": owner.id,
-                    "name": owner.name,
-                    "email": owner.email,
-                    "role": owner.role.value,
-                    "is_owner": owner.is_owner,
-                    "created_at": owner.created_at,
+                    "id": str(owner_user.id), "name": owner_user.name, "email": owner_user.email,
+                    "role": owner_user.role.value, "is_owner": owner_user.is_owner,
+                    "created_at": owner_user.created_at,
                 },
             },
         )
