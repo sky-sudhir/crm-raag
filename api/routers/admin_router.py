@@ -1,5 +1,5 @@
-# File: api/routers/admin_router.py
 from fastapi import APIRouter, Depends, HTTPException
+# File: api/routers/admin_router.py
 from sqlalchemy.ext.asyncio import AsyncSession
 from api.db.tenant import get_db_public_session
 from api.services.onboarding_service import OnboardingService

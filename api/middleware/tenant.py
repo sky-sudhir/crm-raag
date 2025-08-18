@@ -9,7 +9,6 @@ from api.models.organization import Organization
 class TenantMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         hostname = request.headers.get("host", "").split(":")[0]
-        
         print("hostname", hostname)
         main_domain = "localhost" # Use "localhost" if you test in a browser
         print("main_domain", main_domain)

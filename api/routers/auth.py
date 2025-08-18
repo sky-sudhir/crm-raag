@@ -1,24 +1,44 @@
 # File: api/routers/auth.py
 from http import HTTPStatus
-from fastapi import APIRouter, Depends, HTTPException
+import random
+import uuid
+import enum
+from datetime import datetime, timedelta
+
+from fastapi import APIRouter, Depends, HTTPException, Body
+from pydantic import EmailStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
-# --- IMPORT THE CORRECT DEPENDENCIES ---
-from api.db.tenant import get_db_public_session
 from api.db.database import get_unscoped_db_session
-
+from api.db.tenant import get_db_public, get_db_tenant
+from api.models.otp import OTP
+from api.models.organization import Organization
+from api.schemas.auth import LoginRequest
 from api.services.auth_service import AuthService
 from api.schemas.organization import CreateOrganizationRequest
 
-router = APIRouter(prefix="/auth", tags=["Auth"])
+router = APIRouter(prefix="/api/auth", tags=["Auth"])
 
-@router.post("/signup", status_code=HTTPStatus.OK)
-async def signup(email: str, db: AsyncSession = Depends(get_db_public_session)): # <-- Use public session
+
+@router.post("/signup",status_code=HTTPStatus.OK)
+async def signup(email: str, db: AsyncSession = Depends(get_db_public)):
     return await AuthService(db).signup(email)
 
 @router.post("/verify-otp")
-async def verify_otp(email: str, otp: int, db: AsyncSession = Depends(get_db_public_session)): # <-- Use public session
+async def verify_otp(email: str, otp: int, db: AsyncSession = Depends(get_db_public)):
     return await AuthService(db).verify_otp(email, otp)
+
+
+# @router.post("/create-organization")
+# async def create_organization(
+#     payload: CreateOrganizationRequest,
+#     db: AsyncSession = Depends(get_unscoped_db_session)
+# async def verify_otp(email: str, otp: int, db: AsyncSession = Depends(get_db_public)):
+#     return await AuthService(db).verify_otp(email, otp)
+
+@router.post("/login")
+async def login(request:LoginRequest, db: AsyncSession = Depends(get_db_tenant)):
+    return await AuthService(db).login(email=request.email, password=request.password)
 
 @router.post("/create-organization")
 async def create_organization(

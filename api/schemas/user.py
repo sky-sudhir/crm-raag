@@ -25,8 +25,7 @@ class UserUpdate(BaseModel):
 class UserRead(UserBase):
     """Schema for reading user data. Excludes sensitive info like password."""
     id: str
-    created_at: datetime
-    updated_at: datetime
+    
 
     model_config = {
         "from_attributes": True  # Enables creating the schema from an ORM model
