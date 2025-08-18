@@ -1,13 +1,15 @@
-import select
+from sqlalchemy import select
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import Select
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from api.services import user_service
 from api.db.database import get_db
 from api.db.tenant import get_db_public_session, get_db_tenant_session
-from api.models import organization, user
+from api.models import user
 from api.schemas.user import UserCreate, UserRead
-from api.services import user_service
+from api.models.organization import Organization
+from api.schemas.organization import OrganizationOut
 
 
 # Initialize the router with a prefix and tags for API documentation
@@ -24,7 +26,6 @@ async def create_new_user(data: UserCreate, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Email already registered")
     return await user_service.create_user(db, data)
 
-
 @router.get("/me", status_code=201, summary="Create a new user")
 async def create_new_user(db: AsyncSession = Depends(get_db_tenant_session)):
     db_users = await db.execute(Select(user.User))
@@ -32,12 +33,13 @@ async def create_new_user(db: AsyncSession = Depends(get_db_tenant_session)):
     print("db_users" , db_users)
     return db_users
 
-@router.get("/public", status_code=201, summary="Create a new user")
-async def create_new_user(db: AsyncSession = Depends(get_db_public_session)):
-    db_users = await db.execute(Select(organization.Organization))
-    db_users = db_users.scalars()
-    print("db_users" , db_users)
-    return db_users
+@router.get("/public", response_model=List[OrganizationOut], summary="Get all organizations")
+async def get_org_details(db: AsyncSession = Depends(get_db_public_session)):
+    # execute async query
+    result = await db.execute(select(Organization))
+    orgs = result.scalars().all()  # convert ScalarResult → list
+    return orgs
+
 
 # @router.get("/", response_model=List[UserRead], summary="Get a list of all users")
 # async def list_users(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)):

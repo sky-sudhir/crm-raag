@@ -1,5 +1,6 @@
 # api/schemas/organization.py
 from pydantic import BaseModel, EmailStr
+from datetime import datetime
 
 class OrgSignupRequest(BaseModel):
     email: EmailStr
@@ -18,3 +19,17 @@ class CreateOrganizationRequest(BaseModel):
     password: str
     status: str = "ACTIVE"
     rag_type: str = "BASIC"
+
+class OrganizationOut(BaseModel):
+    id: str
+    email: str
+    name: str
+    schema: str
+    subdomain: str
+    created_at: datetime
+    updated_at: datetime
+    status: str
+    rag_type: str
+    
+    class Config:
+        orm_mode = True  # allows returning ORM objects directly
