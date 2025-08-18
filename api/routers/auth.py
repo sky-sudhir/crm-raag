@@ -32,9 +32,10 @@ async def verify_otp(email: str, otp: int, db: AsyncSession = Depends(get_db_pub
 # @router.post("/create-organization")
 # async def create_organization(
 #     payload: CreateOrganizationRequest,
-#     db: AsyncSession = Depends(get_unscoped_db_session)
-# async def verify_otp(email: str, otp: int, db: AsyncSession = Depends(get_db_public)):
-#     return await AuthService(db).verify_otp(email, otp)
+#     db: AsyncSession = Depends(get_unscoped_db_session))
+
+#     async def verify_otp(email: str, otp: int, db: AsyncSession = Depends(get_db_public)):
+#         return await AuthService(db).verify_otp(email, otp)
 
 @router.post("/login")
 async def login(request:LoginRequest, db: AsyncSession = Depends(get_db_tenant)):

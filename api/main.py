@@ -14,11 +14,18 @@ from fastapi.middleware.cors import CORSMiddleware
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create all tables
+    """
+    On application startup, create only the tables that belong to the public schema.
+    Tenant-specific tables are created dynamically during the onboarding process.
+    """
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+        public_tables = [
+            table for table in Base.metadata.sorted_tables if table.schema == "public"
+        ]
+        await conn.run_sync(Base.metadata.create_all, tables=public_tables)
     yield
 
+# ... (the rest of your main.py file is unchanged) ...
 app = FastAPI(
     title="CRM APP",
     description="CRM APP",

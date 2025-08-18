@@ -7,7 +7,7 @@ class OnboardingService:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def get_tenant_models(self):
+    def get_tenant_models(self):
         """
         Dynamically gets all SQLAlchemy Table objects that are NOT in the public schema.
         These are the tables that need to be created for each new tenant.
@@ -26,18 +26,19 @@ class OnboardingService:
         await self.session.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema_name}"'))
 
         # Get the list of table blueprints to create
-        tenant_tables = await self.get_tenant_models()
+        tenant_tables = self.get_tenant_models()
 
-        # Temporarily switch to the new schema to create tables
-        await self.session.execute(text(f'SET search_path TO "{schema_name}"'))
-        
-        # Create all tenant-specific tables
+        # --- THIS IS THE CRITICAL FIX ---
+        # We use `begin_nested` on the session itself. This creates a SAVEPOINT.
+        # When this block finishes, the DDL commands are flushed to the DB
+        # and the new tables become visible to the parent transaction.
         async with self.session.begin_nested():
-            await self.session.run_sync(Base.metadata.create_all, tables=tenant_tables)
+            # Get the underlying connection to run the DDL command
+            connection = await self.session.connection()
+            await connection.run_sync(
+                Base.metadata.create_all, tables=tenant_tables
+            )
         
-        # Revert search_path to public
-        await self.session.execute(text('SET search_path TO "public"'))
-
     async def sync_all_tenants(self):
         """
         Ensures all existing tenants have all the latest tables.
@@ -47,15 +48,20 @@ class OnboardingService:
         all_schemas = result.scalars().all()
         
         # Get the list of table blueprints that should exist for every tenant
-        tenant_tables = await self.get_tenant_models()
+        tenant_tables = self.get_tenant_models()
 
+        # Get the underlying connection once
+        connection = await self.session.connection()
+        
         synced_schemas = []
         for schema_name in all_schemas:
             # For each tenant, switch to their schema
             await self.session.execute(text(f'SET search_path TO "{schema_name}"'))
-            # Run create_all with checkfirst=True, which only creates missing tables
-            async with self.session.begin_nested():
-                await self.session.run_sync(Base.metadata.create_all, tables=tenant_tables, checkfirst=True)
+            
+            # Run create_all on the connection
+            await connection.run_sync(
+                Base.metadata.create_all, tables=tenant_tables, checkfirst=True
+            )
             synced_schemas.append(schema_name)
         
         # Revert search_path to public
