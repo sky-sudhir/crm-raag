@@ -14,7 +14,8 @@ class VerifyOTPRequest(BaseModel):
 class CreateOrganizationRequest(BaseModel):
     email: EmailStr
     org_name: str   # Organization name (global)
-    name: str       # Owner user name
+    name: str
+    schema: str       # Owner user name
     subdomain:str
     password: str
     status: str = "ACTIVE"

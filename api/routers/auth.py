@@ -22,19 +22,15 @@ from api.schemas.organization import CreateOrganizationRequest
 from api.utils.response import create_response
 
 
-
 router = APIRouter(prefix="/auth", tags=["Auth"])
-
 
 @router.post("/signup",status_code=HTTPStatus.OK)
 async def signup(email: str, db: AsyncSession = Depends(get_db)):
     return await AuthService(db).signup(email)
 
-
 @router.post("/verify-otp")
 async def verify_otp(email: str, otp: int, db: AsyncSession = Depends(get_db)):
     return await AuthService(db).verify_otp(email, otp)
-
 
 @router.post("/create-organization")
 async def create_organization(
