@@ -12,6 +12,7 @@ from api.models.organization import Organization, OrgStatus, RagType
 from api.models.otp import OTP
 from api.models.user import UserRole, get_user_model, User as UserBlueprint
 from api.schemas.organization import CreateOrganizationRequest
+from api.services.user_service import UserService
 from api.utils.email_sender import send_email
 from api.utils.security import hash_password, verify_password, create_jwt_token
 from api.utils.util_response import APIResponse
@@ -54,10 +55,18 @@ class AuthService:
     async def login(self, email: str, password: str):
         user_result = await self.session.execute(select(UserBlueprint).where(UserBlueprint.email == email))
         user = user_result.scalar_one_or_none()
-        if not user or not verify_password(password, user.password):
+        if not user:
             raise HTTPException(status_code=400, detail="Invalid email or password")
+        
+        if not verify_password(password, user.password):
+            raise HTTPException(status_code=400, detail="Invalid email or password")
+
+
         token = create_jwt_token(user_id=user.id, email=user.email, role=user.role, tenant=tenant_schema.get())
-        return APIResponse(message="Login successful", data={"token": token})
+        user_data=await UserService(self.session).get_user_by_email(email=user.email)
+
+        return APIResponse(message="Login successful", data={"token": token,
+                                                             "user":user_data})
 
     async def create_organization_with_owner(self, payload: CreateOrganizationRequest):
         schema_name = payload.subdomain.lower()
