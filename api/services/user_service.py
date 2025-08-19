@@ -17,7 +17,6 @@ class UserService:
 
     
     async def get_user_by_email(self, email: str)->UserRead:
-        print("Current user:", email)
 
         result = await self.session.execute(select(User).where(User.email == email))
         result= result.scalar_one_or_none()
