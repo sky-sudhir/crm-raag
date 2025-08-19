@@ -1,4 +1,3 @@
-# api/models/user.py
 import enum
 import uuid
 from sqlalchemy import String, Boolean, DateTime, func, Enum
