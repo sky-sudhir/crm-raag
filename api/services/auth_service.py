@@ -16,6 +16,7 @@ from api.utils.email_sender import send_email
 from api.utils.security import hash_password, verify_password, create_jwt_token
 from api.utils.util_response import APIResponse
 from api.db.tenant import tenant_schema
+from api.utils.TenantUtils import TenantUtils
 
 class AuthService:
     def __init__(self, session: AsyncSession):
@@ -58,10 +59,6 @@ class AuthService:
         token = create_jwt_token(user_id=user.id, email=user.email, role=user.role, tenant=tenant_schema.get())
         return APIResponse(message="Login successful", data={"token": token})
 
-    def _get_tenant_models(self):
-        """Gets all SQLAlchemy Table objects that are NOT in the public schema."""
-        return [table for table in Base.metadata.sorted_tables if table.schema != "public"]
-
     async def create_organization_with_owner(self, payload: CreateOrganizationRequest):
         schema_name = payload.subdomain.lower()
 
@@ -86,7 +83,7 @@ class AuthService:
 
             async with self.session.begin_nested():
                 conn = await self.session.connection()
-                tenant_tables = self._get_tenant_models()
+                tenant_tables = TenantUtils.get_tenant_tables()
                 for table in tenant_tables:
                     table.schema = schema_name
                 await conn.run_sync(Base.metadata.create_all, tables=tenant_tables)
