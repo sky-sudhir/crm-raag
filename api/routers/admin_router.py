@@ -5,7 +5,7 @@ from api.db.tenant import get_db_public
 from api.services.onboarding_service import OnboardingService
 from api.utils.response import create_response
 
-router = APIRouter(prefix="/admin", tags=["Admin"])
+router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
 @router.post("/sync-tenants", summary="Sync all tenant schemas with the latest tables")
 async def sync_tenant_schemas(db: AsyncSession = Depends(get_db_public)):

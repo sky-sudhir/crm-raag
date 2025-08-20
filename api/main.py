@@ -15,6 +15,7 @@ from api.middleware.tenant import TenantMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 from api.models.knowledge_base import KnowledgeBase
 from api.models.audit_log import AuditLogBase
+from api.routers.reserved_subdomain_router import router as reserved_subdomain_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -48,26 +49,23 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all, tables=public_tables)
     yield
 
-# ... (the rest of your main.py file is unchanged) ...
 app = FastAPI(
     title="CRM APP",
     description="CRM APP",
     version="3.0.0",
     lifespan=lifespan
 )
-# origins = [
-#     "http://localhost:3000",   # React local dev
-#     "http://127.0.0.1:3000",  # sometimes needed separately
-#     "https://yourfrontend.com"  # production domain
-# ]
+
+origin_regex = r"^https?:\/\/((localhost(:\d+)?)|([a-z0-9-]+\.redagent\.dev))$"
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],          # list of allowed origins
+    allow_origin_regex=origin_regex,
     allow_credentials=True,
-    allow_methods=["*"],            # allow all HTTP methods
-    allow_headers=["*"],            # allow all headers
+    allow_methods=["*"],
+    allow_headers=["*", "X-Tenant-ID"],
 )
+
 app.add_middleware(TenantMiddleware)
 
 @app.exception_handler(HTTPException)
@@ -84,7 +82,6 @@ async def global_exception_handler(request: Request, exc: HTTPException):
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    # logging.error(f"Unhandled exception: {exc}", exc_info=True)
     stack_trace = traceback.format_exc()
     return JSONResponse(
         status_code=500,
@@ -105,3 +102,4 @@ app.include_router(auth_router)
 app.include_router(admin_router) 
 app.include_router(chat_router)
 app.include_router(category_router)
+app.include_router(reserved_subdomain_router)

@@ -10,7 +10,7 @@ from api.schemas.chat_history import ChatHistoryCreate, ChatHistoryRead
 from api.services.chat_service import ChatHistoryService
 
 # Initialize the router
-router = APIRouter(prefix="/chat", tags=["Chat History"])
+router = APIRouter(prefix="/api/chat", tags=["Chat History"])
 
 @router.post("/", response_model=ChatHistoryRead, status_code=201, summary="Create a new chat history record")
 async def create_chat_history(
