@@ -24,10 +24,20 @@ class UserRole(str, enum.Enum):
     """Enumeration for user roles."""
     ROLE_ADMIN = "ROLE_ADMIN"
     ROLE_USER = "ROLE_USER"
+    # Extended roles for RAG system
+    ROLE_HR = "ROLE_HR"
+    ROLE_FINANCE = "ROLE_FINANCE"
+    ROLE_SALES = "ROLE_SALES"
+    ROLE_IT = "ROLE_IT"
 
 class UserRole(PyEnum):
     ROLE_USER = "ROLE_USER"
     ROLE_ADMIN = "ROLE_ADMIN"
+    # Extended roles for RAG system
+    ROLE_HR = "ROLE_HR"
+    ROLE_FINANCE = "ROLE_FINANCE"
+    ROLE_SALES = "ROLE_SALES"
+    ROLE_IT = "ROLE_IT"
 
 
 # 1. Create an Abstract Base Class or Mixin with all the common columns
