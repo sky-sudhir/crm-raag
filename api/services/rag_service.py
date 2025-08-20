@@ -238,7 +238,7 @@ class RAGService:
         category_ids: List[str],
         db_session: AsyncSession,
         top_k: int = 5
-    ) -> List[Tuple[VectorDocument, float]]:
+    ) -> List[Tuple[VectorDoc, float]]:
         """
         Search for similar documents based on query and user access.
         
@@ -250,7 +250,7 @@ class RAGService:
             db_session: AsyncSession
             
         Returns:
-            List of tuples containing (VectorDocument, similarity_score)
+            List of tuples containing (VectorDoc, similarity_score)
         """
         try:
             # Note: This method assumes the search_path is already set by the caller
