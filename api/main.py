@@ -14,6 +14,7 @@ from api.routers.category_router import router as category_router
 from api.utils.util_error import ErrorResponse
 from api.middleware.tenant import TenantMiddleware
 from fastapi.middleware.cors import CORSMiddleware
+from api.models.knowledge_base import KnowledgeBase
 from api.models.audit_log import AuditLogBase
 from api.routers.reserved_subdomain_router import router as reserved_subdomain_router
 
