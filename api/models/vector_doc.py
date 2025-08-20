@@ -11,9 +11,9 @@ from sqlalchemy import (
     func,
     JSON,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship, declarative_base
+from sqlalchemy.orm import Mapped, mapped_column, relationship, declarative_base, declared_attr
 from api.db.database import Base
-from sqlalchemy.dialects.postgresql import VECTOR
+from pgvector.sqlalchemy import Vector
 
 
 class VectorDocBase:
@@ -30,26 +30,33 @@ class VectorDocBase:
     user_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    user = relationship("User", back_populates="vector_docs")
+    @declared_attr
+    def user(cls):
+        return relationship("User", back_populates="vector_docs")
 
     # 🔑 FK → Category
     category_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("categories.id", ondelete="CASCADE"), nullable=False
     )
-    category = relationship("Category", back_populates="vector_docs")
+    @declared_attr
+    def category(cls):
+        return relationship("Category", back_populates="vector_docs")
 
     # 🔑 FK → KnowledgeBase (file)
     file_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("knowledge_base.id", ondelete="CASCADE"), nullable=False
     )
-    file = relationship("KnowledgeBase", back_populates="vector_docs")
+    @declared_attr
+    def file(cls):
+        return relationship("KnowledgeBase", back_populates="vector_docs")
 
     chunk_id: Mapped[int] = mapped_column(Integer, nullable=False)
     chunk_text: Mapped[str] = mapped_column(Text, nullable=False)
 
-    embedding: Mapped[list[float]] = mapped_column(VECTOR(786), nullable=False)
+    embedding: Mapped[list[float]] = mapped_column(Vector(768), nullable=False)
 
-    metadata: Mapped[dict] = mapped_column(JSON, nullable=True)
+    # Avoid reserved attribute name clash with SQLAlchemy's class-level `metadata`
+    doc_metadata: Mapped[dict] = mapped_column(JSON, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

@@ -12,3 +12,16 @@ alembic
 aiosmtplib
 passlib[bcrypt]
 PyJWT
+pgvector
+langchain
+langchain-community
+langchain-openai
+langchain-text-splitters
+langchain-google-genai
+google-generativeai
+boto3
+Pillow
+PyPDF2
+python-docx
+openpyxl
+aiohttp

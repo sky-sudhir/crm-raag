@@ -67,7 +67,9 @@ class UserService:
         await self.session.commit()
         await self.session.refresh(user)
         
-        return await self.get_user_by_id(user.id)
+        curr_user= await self.get_user_by_id(user.id)
+
+        return APIResponse(data=curr_user,message="Created Successfully")
     
     async def get_user_by_id(self, user_id: str) -> UserRead:
         """Get a user by ID with categories."""
@@ -89,7 +91,8 @@ class UserService:
             "updated_at": user.updated_at,
             "categories": [{"id": cat.id, "name": cat.name} for cat in user.categories]
         }
-        return UserRead.model_validate(user_dict)
+        return APIResponse(data=user_dict,message="Retrived Successfully")
+    
 
     async def get_user_by_email(self, email: str) -> UserRead:
         """Get a user by email with categories."""
@@ -111,12 +114,14 @@ class UserService:
             "updated_at": user.updated_at,
             "categories": [{"id": cat.id, "name": cat.name} for cat in user.categories]
         }
-        return UserRead.model_validate(user_dict)
+        return APIResponse(data=user_dict,message="Retrived Successfully")
+
 
     async def get_user_by_email_internal(self, email: str) -> Optional[User]:
         """Internal method to get user by email without schema conversion."""
         result = await self.session.execute(select(User).where(User.email == email))
-        return result.scalar_one_or_none()
+        result= result.scalar_one_or_none()
+        return APIResponse(data=result,message="Retrived Successfully")
 
     async def get_all_users(self) -> List[UserRead]:
         """Get all users with their categories."""
@@ -139,7 +144,8 @@ class UserService:
             }
             user_list.append(UserRead.model_validate(user_dict))
         
-        return user_list
+        return APIResponse(data=user_list,message="Retrived Successfully")
+
 
     async def update_user(self, user_id: str, user_data: UserUpdate) -> UserRead:
         """Update a user."""
@@ -189,7 +195,9 @@ class UserService:
         await self.session.commit()
         await self.session.refresh(user)
         
-        return await self.get_user_by_id(user.id)
+        curr_user= await self.get_user_by_id(user.id)
+        return APIResponse(data=curr_user,message="UPdated Successfully")
+
 
     async def delete_user(self, user_id: str) -> bool:
         """Delete a user."""
@@ -204,4 +212,5 @@ class UserService:
 
         await self.session.execute(delete(User).where(User.id == user_id))
         await self.session.commit()
-        return True
+        return APIResponse(data=None,message="Deleted Successfully")
+
