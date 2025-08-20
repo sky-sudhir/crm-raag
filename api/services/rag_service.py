@@ -11,6 +11,7 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
 from api.models.category import Category
+from api.models.user import user_categories
 from api.models.knowledge_base import KnowledgeBase, KBStatus
 from api.models.vector_doc import VectorDoc
 from api.schemas.rag_schemas import VectorDocumentCreate
@@ -308,10 +309,10 @@ class RAGService:
             return 0.0
     
     async def get_accessible_categories(
-        self, 
-        user_roles: List[str], 
+        self,
+        user_id: str,
         tenant_schema: str,
-        db_session: AsyncSession
+        db_session: AsyncSession,
     ) -> List[str]:
         """
         Get list of category IDs that the user can access.
@@ -328,38 +329,19 @@ class RAGService:
             # Set the search path to the tenant's schema
             await db_session.execute(text(f'SET search_path TO "{tenant_schema}"'))
             
-            # Get all categories in the current tenant schema
-            query = select(DocumentCategory)
-            
-            logger.info(f"Executing query: {query}")
-            logger.info(f"Current search_path: {tenant_schema}")
-            
+            # Categories are accessible if linked to the user via association table
+            query = (
+                select(Category.id)
+                .select_from(Category)
+                .join(user_categories, Category.id == user_categories.c.category_id)
+                .where(user_categories.c.user_id == user_id)
+            )
+
+            logger.info(f"Executing accessible categories query for user {user_id} in {tenant_schema}")
             result = await db_session.execute(query)
-            categories = result.scalars().all()
-            
-            logger.info(f"Raw result: {result}")
-            logger.info(f"Categories found: {categories}")
-            
-            # Filter categories based on user roles
-            accessible_categories = []
-            logger.info(f"Found {len(categories)} categories for tenant {tenant_schema}")
-            logger.info(f"User roles: {user_roles}")
-            
-            for category in categories:
-                logger.info(f"Checking category: {category.name}, allowed_roles: {category.allowed_roles}, is_general: {category.is_general}")
-                # General categories are accessible by all users
-                if category.is_general:
-                    accessible_categories.append(category.id)
-                    logger.info(f"Category {category.name} is general - accessible")
-                # Check if user has any of the allowed roles
-                elif any(role in category.allowed_roles for role in user_roles):
-                    accessible_categories.append(category.id)
-                    logger.info(f"Category {category.name} accessible by role match")
-                else:
-                    logger.info(f"Category {category.name} not accessible")
-            
-            logger.info(f"Total accessible categories: {len(accessible_categories)}")
-            return accessible_categories
+            category_ids = [row[0] for row in result.all()]
+            logger.info(f"Accessible category IDs: {category_ids}")
+            return category_ids
             
         except Exception as e:
             logger.error(f"Error getting accessible categories: {str(e)}")

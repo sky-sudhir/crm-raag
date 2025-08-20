@@ -40,40 +40,27 @@ async def create_category(
     current_user: dict = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_unscoped_db_session)
 ):
-    """Create a new document category (Admin only)."""
-    if current_user["role"] not in ["ROLE_ADMIN"]:
-        raise HTTPException(status_code=403, detail="Only admins can create categories")
-    
+    """Create a new category (tenant-scoped)."""
     try:
-        # Set the search path to the tenant's schema
         await db_session.execute(text(f'SET search_path TO "{current_user["tenant"]}"'))
-        
-        # Check if category already exists using proper SQLAlchemy query
+
         existing_category = await db_session.execute(
             select(DocumentCategory).where(DocumentCategory.name == category.name)
         )
         if existing_category.scalar_one_or_none():
             raise HTTPException(status_code=400, detail="Category already exists")
-        
-        # Create new category with explicit schema
+
         db_category = DocumentCategory(
             id=str(uuid.uuid4()),
             name=category.name,
-            description=category.description,
-            allowed_roles=category.allowed_roles,
-            is_general=category.is_general,
-            organization_id=current_user["tenant"]  # Use tenant from JWT
         )
-        
-        # Set the table schema explicitly for this instance
         db_category.__table__.schema = current_user["tenant"]
-        
+
         db_session.add(db_category)
         await db_session.commit()
         await db_session.refresh(db_category)
-        
-        return DocumentCategoryResponse.from_orm(db_category)
-        
+
+        return DocumentCategoryResponse.model_validate(db_category)
     except Exception as e:
         await db_session.rollback()
         logger.error(f"Error creating category: {str(e)}")
@@ -85,20 +72,16 @@ async def get_categories(
     current_user: dict = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_unscoped_db_session)
 ):
-    """Get all categories accessible to the current user."""
+    """Get all categories accessible to the current user (via user-category association)."""
     try:
-        # Get user roles
-        user_roles = [current_user["role"]]
-        
-        # Get accessible categories
         accessible_categories = await rag_service.get_accessible_categories(
-            user_roles, current_user["tenant"], db_session
+            current_user["sub"], current_user["tenant"], db_session
         )
         
         # Set the search path to the tenant's schema
         await db_session.execute(text(f'SET search_path TO "{current_user["tenant"]}"'))
         
-        # Fetch category details using proper SQLAlchemy query
+        # Fetch category details
         categories = []
         for category_id in accessible_categories:
             result = await db_session.execute(
@@ -106,16 +89,7 @@ async def get_categories(
             )
             category = result.scalar_one_or_none()
             if category:
-                categories.append(DocumentCategoryResponse(
-                    id=category.id,
-                    name=category.name,
-                    description=category.description,
-                    allowed_roles=category.allowed_roles,
-                    is_general=category.is_general,
-                    organization_id=category.organization_id,
-                    created_at=category.created_at,
-                    updated_at=category.updated_at
-                ))
+                categories.append(DocumentCategoryResponse.model_validate(category))
         
         return categories
         
