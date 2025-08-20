@@ -55,7 +55,7 @@ class AuthService:
 
     async def login(self, email: str, password: str):
         user_result = await self.session.execute(select(UserBlueprint).where(UserBlueprint.email == email))
-        user = user_result.scalar_one_or_none()
+        user = user_result.unique().scalar_one_or_none()
         if not user:
             raise HTTPException(status_code=400, detail="Invalid email or password")
         
