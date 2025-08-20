@@ -33,7 +33,7 @@ class TenantMiddleware(BaseHTTPMiddleware):
             if not organization:
                 raise HTTPException(status_code=404, detail=f"Workspace '{subdomain}' not found. Check the X-Tenant-ID header.")
             
-            schema_name = organization.schema
+            schema_name = organization.schema_name
         
         # Set the schema for this request's context
         token = tenant_schema.set(schema_name)

@@ -5,7 +5,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
-
+import secrets
 from api.db.database import Base
 # Import the Enum types along with the model
 from api.models.organization import Organization, OrgStatus, RagType
@@ -69,19 +69,20 @@ class AuthService:
                                                              "user":user_data})
 
     async def create_organization_with_owner(self, payload: CreateOrganizationRequest):
-        schema_name = payload.subdomain.lower()
-
+        subdomain = payload.subdomain.lower()
+        unique_slug = secrets.token_hex(8)
+        schema_name = f"{subdomain}_{unique_slug}"
         async with self.session.begin():
-            stmt_reserved = select(ReservedSubdomain).where(ReservedSubdomain.subdomain == schema_name)
+            stmt_reserved = select(ReservedSubdomain).where(ReservedSubdomain.subdomain == subdomain)
             result_reserved = await self.session.execute(stmt_reserved)
             if result_reserved.scalar_one_or_none():
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"The subdomain '{payload.subdomain}' is reserved and cannot be used."
+                    detail=f"The subdomain '{payload.subdomain}' is reserved by redagent.dev and cannot be used."
                 )
 
             stmt_exists = select(Organization).where(
-                (Organization.email == payload.email) | (Organization.subdomain == payload.subdomain)
+                (Organization.email == payload.email) | (Organization.subdomain == subdomain)
             )
             result_exists = await self.session.execute(stmt_exists)
             if result_exists.scalar_one_or_none():
@@ -90,8 +91,10 @@ class AuthService:
             await self.session.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema_name}"'))
 
             new_org = Organization(
-                email=payload.email, name=payload.org_name, schema=schema_name,
-                subdomain=payload.subdomain,
+                email=payload.email,
+                name=payload.org_name,
+                schema_name=schema_name,  # <-- Store the generated unique schema name
+                subdomain=subdomain, # <-- Store the public-facing subdomain
                 status=OrgStatus(payload.status.upper()),
                 rag_type=RagType(payload.rag_type.upper()),
             )
@@ -116,7 +119,8 @@ class AuthService:
             self.session.add(owner_user)
             await self.session.flush()
         await self.session.refresh(new_org)
-        
+        token = create_jwt_token(user_id=owner_user.id, email=owner_user.email, role=owner_user.role, tenant=new_org.subdomain)
+        # // tenant = subdomain
         return APIResponse(
             message="Organization and owner created successfully",
             data={
@@ -132,5 +136,6 @@ class AuthService:
                     "role": owner_user.role.value, "is_owner": owner_user.is_owner,
                     "created_at": owner_user.created_at,
                 },
+                "token": token
             },
         )
