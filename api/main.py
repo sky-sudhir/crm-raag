@@ -9,7 +9,7 @@ from api.routers.user_router import router as user_router
 from api.routers.auth_router import router as auth_router
 from api.routers.chat_router import router as chat_router
 from api.routers.admin_router import router as admin_router
-from api.routers.rag_router import router as rag_router
+from api.routers.kb_router import router as kb_router
 from api.routers.category_router import router as category_router
 from api.utils.util_error import ErrorResponse
 from api.middleware.tenant import TenantMiddleware
@@ -104,5 +104,5 @@ app.include_router(user_router)
 app.include_router(auth_router)
 app.include_router(admin_router) 
 app.include_router(chat_router)
-app.include_router(rag_router)
+app.include_router(kb_router)
 app.include_router(category_router)
