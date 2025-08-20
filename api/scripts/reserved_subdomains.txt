@@ -1,0 +1,155 @@
+-- First, enable UUID extension if not already enabled
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Alternative: Use pgcrypto extension (more commonly available)
+-- CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- Now insert all reserved subdomains with auto-generated UUIDs
+-- Using uuid_generate_v4() (requires uuid-ossp extension)
+-- OR gen_random_uuid() (requires pgcrypto extension or PostgreSQL 13+)
+
+INSERT INTO public.reserved_subdomains (id, subdomain, description) VALUES 
+-- Core Platform Infrastructure
+(uuid_generate_v4(), 'api', 'Main API endpoints'),
+(uuid_generate_v4(), 'app', 'Main application interface'),
+(uuid_generate_v4(), 'web', 'Primary web application'),
+(uuid_generate_v4(), 'www', 'Standard web prefix'),
+(uuid_generate_v4(), 'admin', 'Administrative dashboard'),
+(uuid_generate_v4(), 'dashboard', 'User dashboard/control panel'),
+(uuid_generate_v4(), 'portal', 'User portal interface'),
+(uuid_generate_v4(), 'console', 'Management console'),
+
+-- Authentication & Security
+(uuid_generate_v4(), 'auth', 'Authentication services'),
+(uuid_generate_v4(), 'login', 'Login endpoints'),
+(uuid_generate_v4(), 'sso', 'Single Sign-On services'),
+(uuid_generate_v4(), 'oauth', 'OAuth provider endpoints'),
+(uuid_generate_v4(), 'security', 'Security-related services'),
+(uuid_generate_v4(), 'vault', 'Secrets/credential management'),
+
+-- Documentation & Support
+(uuid_generate_v4(), 'docs', 'Documentation site'),
+(uuid_generate_v4(), 'help', 'Help center/knowledge base'),
+(uuid_generate_v4(), 'support', 'Customer support portal'),
+(uuid_generate_v4(), 'guides', 'User guides and tutorials'),
+(uuid_generate_v4(), 'api-docs', 'API documentation'),
+(uuid_generate_v4(), 'developer', 'Developer resources'),
+(uuid_generate_v4(), 'dev-docs', 'Developer documentation'),
+
+-- RAG-Specific Services
+(uuid_generate_v4(), 'rag', 'Core RAG service endpoints'),
+(uuid_generate_v4(), 'embeddings', 'Embedding generation service'),
+(uuid_generate_v4(), 'vectordb', 'Vector database access'),
+(uuid_generate_v4(), 'search', 'Search functionality'),
+(uuid_generate_v4(), 'index', 'Document indexing service'),
+(uuid_generate_v4(), 'ingest', 'Document ingestion endpoints'),
+(uuid_generate_v4(), 'pipeline', 'Processing pipeline management'),
+(uuid_generate_v4(), 'knowledge', 'Knowledge base management'),
+(uuid_generate_v4(), 'retrieval', 'Document retrieval service'),
+(uuid_generate_v4(), 'semantic', 'Semantic search endpoints'),
+
+-- Development & Testing
+(uuid_generate_v4(), 'dev', 'Development environment'),
+(uuid_generate_v4(), 'test', 'Testing environment'),
+(uuid_generate_v4(), 'staging', 'Staging environment'),
+(uuid_generate_v4(), 'sandbox', 'Sandbox environment'),
+(uuid_generate_v4(), 'preview', 'Preview deployments'),
+(uuid_generate_v4(), 'demo', 'Demo environment'),
+(uuid_generate_v4(), 'beta', 'Beta testing environment'),
+(uuid_generate_v4(), 'alpha', 'Alpha testing environment'),
+
+-- Monitoring & Operations
+(uuid_generate_v4(), 'status', 'Status page'),
+(uuid_generate_v4(), 'health', 'Health check endpoints'),
+(uuid_generate_v4(), 'metrics', 'Metrics and analytics'),
+(uuid_generate_v4(), 'logs', 'Log management'),
+(uuid_generate_v4(), 'monitoring', 'Monitoring dashboard'),
+(uuid_generate_v4(), 'alerts', 'Alert management'),
+(uuid_generate_v4(), 'ops', 'Operations dashboard'),
+(uuid_generate_v4(), 'telemetry', 'Telemetry data collection'),
+
+-- CDN & Assets
+(uuid_generate_v4(), 'cdn', 'Content Delivery Network'),
+(uuid_generate_v4(), 'assets', 'Static assets'),
+(uuid_generate_v4(), 'static', 'Static file serving'),
+(uuid_generate_v4(), 'media', 'Media file storage'),
+(uuid_generate_v4(), 'files', 'File management'),
+(uuid_generate_v4(), 'uploads', 'File upload handling'),
+(uuid_generate_v4(), 'images', 'Image serving'),
+(uuid_generate_v4(), 'downloads', 'Download endpoints'),
+
+-- Communication & Marketing
+(uuid_generate_v4(), 'mail', 'Email services'),
+(uuid_generate_v4(), 'email', 'Email handling'),
+(uuid_generate_v4(), 'newsletter', 'Newsletter management'),
+(uuid_generate_v4(), 'blog', 'Company blog'),
+(uuid_generate_v4(), 'news', 'News and updates'),
+(uuid_generate_v4(), 'marketing', 'Marketing pages'),
+(uuid_generate_v4(), 'landing', 'Landing pages'),
+(uuid_generate_v4(), 'promo', 'Promotional content'),
+
+-- Business & Sales
+(uuid_generate_v4(), 'billing', 'Billing and payments'),
+(uuid_generate_v4(), 'payments', 'Payment processing'),
+(uuid_generate_v4(), 'pricing', 'Pricing information'),
+(uuid_generate_v4(), 'plans', 'Subscription plans'),
+(uuid_generate_v4(), 'sales', 'Sales portal'),
+(uuid_generate_v4(), 'crm', 'Customer relationship management'),
+(uuid_generate_v4(), 'invoice', 'Invoice management'),
+(uuid_generate_v4(), 'subscription', 'Subscription management'),
+
+-- Regional & Localization
+(uuid_generate_v4(), 'us', 'US region'),
+(uuid_generate_v4(), 'eu', 'Europe region'),
+(uuid_generate_v4(), 'asia', 'Asia region'),
+(uuid_generate_v4(), 'global', 'Global services'),
+(uuid_generate_v4(), 'region', 'Regional routing'),
+(uuid_generate_v4(), 'local', 'Localized content'),
+
+-- Future Technology Reserves
+(uuid_generate_v4(), 'ai', 'AI services'),
+(uuid_generate_v4(), 'ml', 'Machine Learning endpoints'),
+(uuid_generate_v4(), 'llm', 'Large Language Model services'),
+(uuid_generate_v4(), 'chat', 'Chat/conversational interfaces'),
+(uuid_generate_v4(), 'voice', 'Voice processing'),
+(uuid_generate_v4(), 'vision', 'Computer vision services'),
+(uuid_generate_v4(), 'nlp', 'Natural Language Processing'),
+(uuid_generate_v4(), 'graph', 'Graph database/services'),
+(uuid_generate_v4(), 'blockchain', 'Blockchain services (future)'),
+(uuid_generate_v4(), 'quantum', 'Quantum computing (future)'),
+
+-- Infrastructure Services
+(uuid_generate_v4(), 'cache', 'Caching services'),
+(uuid_generate_v4(), 'queue', 'Message queuing'),
+(uuid_generate_v4(), 'worker', 'Background workers'),
+(uuid_generate_v4(), 'cron', 'Scheduled tasks'),
+(uuid_generate_v4(), 'batch', 'Batch processing'),
+(uuid_generate_v4(), 'stream', 'Streaming services'),
+(uuid_generate_v4(), 'realtime', 'Real-time services'),
+(uuid_generate_v4(), 'websocket', 'WebSocket connections'),
+
+-- Generic Reserves
+(uuid_generate_v4(), 'service', 'Generic service endpoints'),
+(uuid_generate_v4(), 'platform', 'Platform services'),
+(uuid_generate_v4(), 'system', 'System-level services'),
+(uuid_generate_v4(), 'internal', 'Internal services'),
+(uuid_generate_v4(), 'private', 'Private endpoints'),
+(uuid_generate_v4(), 'public', 'Public endpoints'),
+(uuid_generate_v4(), 'external', 'External integrations'),
+(uuid_generate_v4(), 'partner', 'Partner integrations'),
+(uuid_generate_v4(), 'integration', 'Third-party integrations'),
+
+-- Security & Compliance
+(uuid_generate_v4(), 'compliance', 'Compliance dashboard'),
+(uuid_generate_v4(), 'audit', 'Audit logs and reports'),
+(uuid_generate_v4(), 'gdpr', 'GDPR compliance tools'),
+(uuid_generate_v4(), 'privacy', 'Privacy management'),
+(uuid_generate_v4(), 'terms', 'Terms of service'),
+(uuid_generate_v4(), 'legal', 'Legal information');
+
+-- Verification queries
+SELECT COUNT(*) as total_subdomains FROM public.reserved_subdomains;
+SELECT subdomain, description FROM public.reserved_subdomains ORDER BY subdomain LIMIT 10;
+
+-- ALTERNATIVE VERSION (if uuid-ossp is not available, use gen_random_uuid):
+-- Just replace all uuid_generate_v4() with gen_random_uuid() in the above INSERT statement
