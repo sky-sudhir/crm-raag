@@ -34,7 +34,7 @@ class OnboardingService:
         Ensures all existing tenants have all the latest tables.
         """
         # Get all tenant schemas from the public organizations table
-        result = await self.session.execute(select(Organization.schema))
+        result = await self.session.execute(select(Organization.schema_name))
         all_schemas = result.scalars().all()
         
         # Get the list of table blueprints that should exist for every tenant
