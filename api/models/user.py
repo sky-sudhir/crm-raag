@@ -122,3 +122,10 @@ class User(Base, UserBase):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+    # Relationship required by VectorDocBase.back_populates("user")
+    vector_docs: Mapped[list["VectorDoc"]] = relationship(
+        "VectorDoc",
+        primaryjoin="User.id == VectorDoc.user_id",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )

@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from sqlalchemy import String, DateTime, func
-from sqlalchemy.orm import Mapped, mapped_column, declarative_base
+from sqlalchemy.orm import Mapped, mapped_column, declarative_base, relationship
 from api.db.database import Base
 
 class CategoryBase:
@@ -24,3 +24,5 @@ def get_category_model(schema: str, *, DynamicBase=None):
 
 class Category(Base, CategoryBase):
     __tablename__ = "categories"
+    # Relationship required by VectorDocBase.back_populates("category")
+    vector_docs = relationship("VectorDoc", back_populates="category", cascade="all, delete-orphan")
