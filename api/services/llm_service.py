@@ -4,7 +4,7 @@ from typing import List, Tuple
 from langchain_openai import ChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.schema import HumanMessage, SystemMessage
-from api.models.rag_models import VectorDocument
+from api.models.vector_doc import VectorDoc as VectorDocument
 
 logger = logging.getLogger(__name__)
 

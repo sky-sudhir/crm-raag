@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
-from api.models.rag_models import DocumentStatus
+from api.models.knowledge_base import KBStatus
 
 
 class DocumentCategoryBase(BaseModel):
@@ -44,7 +44,7 @@ class KnowledgeBaseCreate(KnowledgeBaseBase):
 
 
 class KnowledgeBaseUpdate(BaseModel):
-    status: Optional[DocumentStatus] = None
+    status: Optional[KBStatus] = None
     json: Optional[str] = None
     s3_url: Optional[str] = None
 
@@ -52,7 +52,7 @@ class KnowledgeBaseUpdate(BaseModel):
 class KnowledgeBaseResponse(KnowledgeBaseBase):
     id: str
     user_id: str
-    status: DocumentStatus
+    status: KBStatus
     json: Optional[str] = None
     s3_url: Optional[str] = None
     created_at: datetime
@@ -67,8 +67,7 @@ class VectorDocumentBase(BaseModel):
     file_id: str
     chunk_id: int = Field(..., ge=0)
     chunk_text: str
-    chunk_hash: str = Field(..., min_length=64, max_length=64)
-    doc_metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
 class VectorDocumentCreate(VectorDocumentBase):
@@ -78,7 +77,7 @@ class VectorDocumentCreate(VectorDocumentBase):
 class VectorDocumentResponse(VectorDocumentBase):
     id: str
     user_id: str
-    embedding: str  # Stored embeddings as string (JSON)
+    embedding: List[float]
     created_at: datetime
     updated_at: datetime
     
@@ -95,7 +94,7 @@ class DocumentUploadRequest(BaseModel):
 
 class DocumentUploadResponse(BaseModel):
     id: str
-    status: DocumentStatus
+    status: KBStatus
     message: str
 
 
@@ -114,7 +113,7 @@ class RAGQueryResponse(BaseModel):
 
 class DocumentProcessingStatus(BaseModel):
     id: str
-    status: DocumentStatus
+    status: KBStatus
     progress: Optional[float] = None  # 0.0 to 1.0
     message: Optional[str] = None
     error: Optional[str] = None

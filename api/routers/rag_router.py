@@ -9,7 +9,8 @@ import PyPDF2
 from docx import Document
 
 from api.db.database import get_unscoped_db_session, AsyncSessionLocal
-from api.models.rag_models import DocumentCategory, KnowledgeBase, VectorDocument, DocumentStatus
+from api.models.category import Category as DocumentCategory
+from api.models.knowledge_base import KnowledgeBase, KBStatus
 from api.schemas.rag_schemas import (
     DocumentCategoryCreate, DocumentCategoryUpdate, DocumentCategoryResponse,
     KnowledgeBaseCreate, KnowledgeBaseResponse,
@@ -170,7 +171,7 @@ async def upload_document(
             category_id=category_id,
             mime=file.content_type,
             file_size=file.size,
-            status=DocumentStatus.UPLOADED
+            status=KBStatus.UPLOADED
         )
         
         logger.info(f"Knowledge base object created: {knowledge_base.id}")
@@ -197,7 +198,7 @@ async def upload_document(
         
         return DocumentUploadResponse(
             id=knowledge_base.id,
-            status=DocumentStatus.UPLOADED,
+            status=KBStatus.UPLOADED,
             message="Document uploaded successfully. Processing started in background."
         )
         
@@ -225,7 +226,7 @@ async def process_document_background(
             
             # Update knowledge base status
             result = await db_session.execute(
-                update(KnowledgeBase).where(KnowledgeBase.id == knowledge_base_id).values(status=DocumentStatus.INGESTING)
+                update(KnowledgeBase).where(KnowledgeBase.id == knowledge_base_id).values(status=KBStatus.INGESTING)
             )
             await db_session.commit()
             
@@ -250,7 +251,7 @@ async def process_document_background(
             
             # Update knowledge base status
             result = await db_session.execute(
-                update(KnowledgeBase).where(KnowledgeBase.id == knowledge_base_id).values(status=DocumentStatus.COMPLETED)
+                update(KnowledgeBase).where(KnowledgeBase.id == knowledge_base_id).values(status=KBStatus.COMPLETED)
             )
             await db_session.commit()
             
@@ -262,7 +263,7 @@ async def process_document_background(
         try:
             async with AsyncSessionLocal() as db_session:
                 result = await db_session.execute(
-                    update(KnowledgeBase).where(KnowledgeBase.id == knowledge_base_id).values(status=DocumentStatus.FAILED)
+                    update(KnowledgeBase).where(KnowledgeBase.id == knowledge_base_id).values(status=KBStatus.FAILED)
                 )
                 await db_session.commit()
         except Exception as update_error:

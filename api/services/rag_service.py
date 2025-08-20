@@ -10,7 +10,9 @@ from langchain_community.vectorstores.pgvector import PGVector
 from langchain_openai import OpenAIEmbeddings
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
-from api.models.rag_models import DocumentCategory, KnowledgeBase, VectorDocument, DocumentStatus
+from api.models.category import Category
+from api.models.knowledge_base import KnowledgeBase, KBStatus
+from api.models.vector_doc import VectorDoc
 from api.schemas.rag_schemas import VectorDocumentCreate
 from api.db.database import AsyncSessionLocal
 from sqlalchemy import select, and_, or_, text
@@ -138,10 +140,9 @@ class RAGService:
                     category_id=category_id,
                     file_id=file_id,
                     chunk_id=i,
-                    chunk_hash=chunk_hash,
                     chunk_text=chunk,
                     embedding=embedding,
-                    doc_metadata={
+                    metadata={
                         **metadata,
                         "chunk_index": i,
                         "total_chunks": len(chunks),
@@ -177,7 +178,7 @@ class RAGService:
         try:
             # Note: This method assumes the search_path is already set by the caller
             result = await db_session.execute(
-                select(VectorDocument.id).where(VectorDocument.chunk_hash == chunk_hash)
+                select(VectorDoc.id).where(VectorDoc.chunk_hash == chunk_hash)
             )
             return result.scalar_one_or_none() is not None
         except Exception as e:
@@ -208,15 +209,14 @@ class RAGService:
             stored_count = 0
             for vector_doc in vector_docs:
                 # Create VectorDocument model instance
-                db_vector_doc = VectorDocument(
+                db_vector_doc = VectorDoc(
                     user_id=user_id,
                     category_id=category_id,
                     file_id=vector_doc.file_id,
                     chunk_id=vector_doc.chunk_id,
                     chunk_text=vector_doc.chunk_text,
-                    chunk_hash=vector_doc.chunk_hash,
-                    embedding=self._embedding_to_string(vector_doc.embedding),
-                    doc_metadata=vector_doc.doc_metadata
+                    embedding=vector_doc.embedding,
+                    metadata=vector_doc.metadata
                 )
                 
                 db_session.add(db_vector_doc)
@@ -259,9 +259,9 @@ class RAGService:
             query_vector = query_embedding[0]
             
             # Build the search query with role-based access control
-            search_query = select(VectorDocument).where(
+            search_query = select(VectorDoc).where(
                 and_(
-                    VectorDocument.category_id.in_(category_ids),
+                    VectorDoc.category_id.in_(category_ids),
                     # Add vector similarity search here when pgvector is properly configured
                 )
             ).limit(top_k)
@@ -275,7 +275,7 @@ class RAGService:
             results = []
             for doc in documents:
                 # Convert string embedding back to list
-                doc_embedding = self._string_to_embedding(doc.embedding)
+                doc_embedding = doc.embedding
                 if doc_embedding:
                     # Simple cosine similarity calculation
                     similarity = self._calculate_cosine_similarity(query_vector, doc_embedding)
