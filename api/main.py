@@ -73,6 +73,14 @@ async def global_exception_handler(request: Request, exc: Exception):
 def home_page():
     return "I am up and running! 🚀"
 
+@app.get("/health", include_in_schema=False)
+async def health_check():
+    """
+    Health check endpoint for AWS ALB.
+    Returns 200 OK when the service is healthy.
+    """
+    return JSONResponse(content={"status": "healthy"}, status_code=200)
+
 # Include all routers
 app.include_router(user_router)
 app.include_router(auth_router)
