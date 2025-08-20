@@ -104,6 +104,13 @@ async def upload_document(
         if cat_result.scalar_one_or_none() is None:
             raise HTTPException(status_code=404, detail="Category not found")
 
+        # Enforce access: owners can upload anywhere, non-owners must have the category
+        accessible = await rag_service.get_accessible_categories(
+            current_user["sub"], current_user["tenant"], db_session
+        )
+        if category_id not in accessible:
+            raise HTTPException(status_code=403, detail="Access denied to this category")
+
         kb = KnowledgeBase(
             id=str(uuid.uuid4()),
             user_id=current_user["sub"],
@@ -212,7 +219,7 @@ async def query_kb(
                     chunk_id=doc.chunk_id,
                     chunk_text=doc.chunk_text,
                     embedding=doc.embedding,
-                    metadata=doc.metadata or {},
+                    metadata=doc.doc_metadata or {},
                     created_at=doc.created_at,
                     updated_at=doc.updated_at,
                 )

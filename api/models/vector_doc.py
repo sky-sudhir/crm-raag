@@ -53,9 +53,10 @@ class VectorDocBase:
     chunk_id: Mapped[int] = mapped_column(Integer, nullable=False)
     chunk_text: Mapped[str] = mapped_column(Text, nullable=False)
 
-    embedding: Mapped[list[float]] = mapped_column(Vector(786), nullable=False)
+    embedding: Mapped[list[float]] = mapped_column(Vector(768), nullable=False)
 
-    metadata: Mapped[dict] = mapped_column(JSON, nullable=True)
+    # Avoid reserved attribute name clash with SQLAlchemy's class-level `metadata`
+    doc_metadata: Mapped[dict] = mapped_column(JSON, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

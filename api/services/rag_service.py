@@ -11,7 +11,7 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
 from api.models.category import Category
-from api.models.user import user_categories
+from api.models.user import user_categories, User
 from api.models.knowledge_base import KnowledgeBase, KBStatus
 from api.models.vector_doc import VectorDoc
 from api.schemas.rag_schemas import VectorDocumentCreate
@@ -129,12 +129,10 @@ class RAGService:
             # Create vector document objects
             vector_docs = []
             for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
-                chunk_hash = self.generate_chunk_hash(chunk)
-                
-                # Check if chunk already exists
-                existing_chunk = await self._check_chunk_exists(chunk_hash, db_session)
-                if existing_chunk:
-                    logger.info(f"Chunk {i} already exists, skipping")
+                # Check if this file's chunk already exists by (file_id, chunk_id)
+                exists = await self._check_chunk_exists(file_id, i, db_session)
+                if exists:
+                    logger.info(f"Chunk {i} already exists for file {file_id}, skipping")
                     continue
                 
                 vector_doc = VectorDocumentCreate(
@@ -174,12 +172,12 @@ class RAGService:
             logger.error(f"Error generating embeddings: {str(e)}")
             raise
     
-    async def _check_chunk_exists(self, chunk_hash: str, db_session: AsyncSession) -> bool:
-        """Check if a chunk with the given hash already exists."""
+    async def _check_chunk_exists(self, file_id: str, chunk_id: int, db_session: AsyncSession) -> bool:
+        """Check if a chunk for this file and index already exists."""
         try:
             # Note: This method assumes the search_path is already set by the caller
             result = await db_session.execute(
-                select(VectorDoc.id).where(VectorDoc.chunk_hash == chunk_hash)
+                select(VectorDoc.id).where(and_(VectorDoc.file_id == file_id, VectorDoc.chunk_id == chunk_id))
             )
             return result.scalar_one_or_none() is not None
         except Exception as e:
@@ -207,6 +205,8 @@ class RAGService:
         """
         try:
             # Note: This method assumes the search_path is already set by the caller
+            # Ensure schema has expected columns/types
+            await self._ensure_vector_doc_schema(db_session)
             stored_count = 0
             for vector_doc in vector_docs:
                 # Create VectorDocument model instance
@@ -217,7 +217,7 @@ class RAGService:
                     chunk_id=vector_doc.chunk_id,
                     chunk_text=vector_doc.chunk_text,
                     embedding=vector_doc.embedding,
-                    metadata=vector_doc.metadata
+                    doc_metadata=vector_doc.metadata
                 )
                 
                 db_session.add(db_vector_doc)
@@ -231,6 +231,30 @@ class RAGService:
             await db_session.rollback()
             logger.error(f"Error storing vector documents: {str(e)}")
             raise
+
+    async def _ensure_vector_doc_schema(self, db_session: AsyncSession) -> None:
+        """Best-effort guard to align vector_doc schema at runtime.
+        - Adds doc_metadata column if missing
+        - Adjusts embedding dimension to 768 if different
+        """
+        try:
+            # Add doc_metadata column if it does not exist
+            await db_session.execute(
+                text("ALTER TABLE vector_doc ADD COLUMN IF NOT EXISTS doc_metadata JSON")
+            )
+            # Attempt to set embedding to vector(768) if not already
+            try:
+                await db_session.execute(
+                    text("ALTER TABLE vector_doc ALTER COLUMN embedding TYPE vector(768)")
+                )
+            except Exception:
+                # Ignore if type is already compatible or cannot be altered
+                pass
+            await db_session.commit()
+        except Exception:
+            # Non-fatal; proceed with inserts and let DB surface concrete errors if any
+            await db_session.rollback()
+            return
     
     async def search_similar_documents(
         self,
@@ -258,6 +282,9 @@ class RAGService:
             # Generate embedding for the query
             query_embedding = await self._generate_embeddings([query])
             query_vector = query_embedding[0]
+            # Normalize to plain Python list to avoid numpy truthiness issues
+            if hasattr(query_vector, "tolist"):
+                query_vector = query_vector.tolist()
             
             # Build the search query with role-based access control
             search_query = select(VectorDoc).where(
@@ -275,12 +302,17 @@ class RAGService:
             # Calculate basic similarity scores (placeholder)
             results = []
             for doc in documents:
-                # Convert string embedding back to list
+                # Normalize stored embedding to list
                 doc_embedding = doc.embedding
-                if doc_embedding:
-                    # Simple cosine similarity calculation
-                    similarity = self._calculate_cosine_similarity(query_vector, doc_embedding)
-                    results.append((doc, similarity))
+                if hasattr(doc_embedding, "tolist"):
+                    doc_embedding = doc_embedding.tolist()
+                # Skip if shape mismatches
+                if doc_embedding is None:
+                    continue
+                if len(doc_embedding) != len(query_vector):
+                    continue
+                similarity = self._calculate_cosine_similarity(query_vector, doc_embedding)
+                results.append((doc, similarity))
             
             # Sort by similarity score
             results.sort(key=lambda x: x[1], reverse=True)
@@ -329,7 +361,21 @@ class RAGService:
             # Set the search path to the tenant's schema
             await db_session.execute(text(f'SET search_path TO "{tenant_schema}"'))
             
-            # Categories are accessible if linked to the user via association table
+            # Check if user is owner; if yes, they get access to all categories
+            owner_result = await db_session.execute(
+                select(User.is_owner).where(User.id == user_id)
+            )
+            is_owner = owner_result.scalar_one_or_none() is True
+            if is_owner:
+                all_q = select(Category.id)
+                all_res = await db_session.execute(all_q)
+                all_ids = [row[0] for row in all_res.all()]
+                logger.info(
+                    f"User {user_id} is owner in {tenant_schema}; granting access to all categories: {len(all_ids)}"
+                )
+                return all_ids
+
+            # Non-owners: Categories accessible if linked via association table
             query = (
                 select(Category.id)
                 .select_from(Category)
@@ -337,10 +383,9 @@ class RAGService:
                 .where(user_categories.c.user_id == user_id)
             )
 
-            logger.info(f"Executing accessible categories query for user {user_id} in {tenant_schema}")
             result = await db_session.execute(query)
             category_ids = [row[0] for row in result.all()]
-            logger.info(f"Accessible category IDs: {category_ids}")
+            logger.info(f"Accessible category IDs for user {user_id}: {category_ids}")
             return category_ids
             
         except Exception as e:
