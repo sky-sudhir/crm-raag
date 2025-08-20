@@ -12,7 +12,7 @@ class OrganizationService:
             name=organization.name,
             email=organization.email,
             subdomain=organization.subdomain,
-            schema=organization.schema
+            schema_name=organization.schema_name
         )
         self.session.add(new_org)
         await self.session.commit()

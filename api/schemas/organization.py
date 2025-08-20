@@ -15,7 +15,7 @@ class CreateOrganizationRequest(BaseModel):
     email: EmailStr
     org_name: str   # Organization name (global)
     name: str
-    schema: str       # Owner user name
+    schema_name: str       # Owner user name
     subdomain:str
     password: str
     status: str = "ACTIVE"
@@ -25,7 +25,7 @@ class OrganizationOut(BaseModel):
     id: str
     email: str
     name: str
-    schema: str
+    schema_name: str
     subdomain: str
     created_at: datetime
     updated_at: datetime
@@ -33,4 +33,4 @@ class OrganizationOut(BaseModel):
     rag_type: str
     
     class Config:
-        orm_mode = True  # allows returning ORM objects directly
+        from_attributes = True
