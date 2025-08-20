@@ -38,6 +38,10 @@ async def lifespan(app: FastAPI):
                 IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ragtype') THEN
                     CREATE TYPE public.ragtype AS ENUM ('BASIC', 'ADVANCED');
                 END IF;
+                
+                IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'kbstatus') THEN
+                    CREATE TYPE public.kbstatus AS ENUM ('UPLOADED', 'INGESTING', 'COMPLETED', 'FAILED', 'DELETED');
+                END IF;
             END $$;
         """))
         
