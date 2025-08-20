@@ -7,6 +7,7 @@ from starlette.responses import JSONResponse
 
 from api import config
 from api.utils.security import decode_jwt_token
+from api.db.tenant import tenant_schema
 
 # --- Configuration ---
 
@@ -36,7 +37,15 @@ async def get_current_user(
     token = auth.credentials[len(remove_bearer):] if auth.credentials.startswith(remove_bearer) else auth.credentials
     try:
         payload = decode_jwt_token(token=token)
-        return payload
+        current_schema=tenant_schema.get()
+        if current_schema!=payload.get("tenant"):
+            raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Token",
+            headers={"WWW-Authenticate": "Bearer"},
+            )
+        else:
+            return payload
     except jwt.ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
