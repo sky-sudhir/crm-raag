@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from enum import Enum as PyEnum
 from sqlalchemy import String, DateTime, Enum, ForeignKey, Integer, Text, func
-from sqlalchemy.orm import Mapped, mapped_column, declarative_base
+from sqlalchemy.orm import Mapped, mapped_column, declarative_base, relationship
 from api.db.database import Base
 
 class KBStatus(PyEnum):
@@ -50,3 +50,5 @@ def get_knowledge_base_model(schema: str, *, DynamicBase=None):
 
 class KnowledgeBase(Base, KnowledgeBaseBase):
     __tablename__ = "knowledge_base"
+    # Back-populates from VectorDoc
+    vector_docs = relationship("VectorDoc", back_populates="file", cascade="all, delete-orphan")
