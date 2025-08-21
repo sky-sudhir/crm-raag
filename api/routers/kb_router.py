@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, B
 from sqlalchemy import select, text, and_, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.db.database import get_unscoped_db_session, AsyncSessionLocal
+from api.db.database import  AsyncSessionLocal
 from api.models.category import Category
 from api.models.knowledge_base import KnowledgeBase, KBStatus
 from api.schemas.rag_schemas import (
@@ -20,6 +20,8 @@ from api.services.llm_service import LLMService
 from api.middleware.jwt_middleware import get_current_user
 from api.services.chat_service import ChatHistoryService
 from api.schemas.chat_history import ChatHistoryCreate
+from api.db.tenant import get_db_tenant
+
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +35,7 @@ llm_service = LLMService(model="openai")
 @router.get("/documents", response_model=List[KnowledgeBaseResponse], summary="Get User Documents")
 async def get_user_documents(
     current_user: dict = Depends(get_current_user),
-    db_session: AsyncSession = Depends(get_unscoped_db_session)
+    db_session: AsyncSession = Depends(get_db_tenant)
 ):
     try:
         await db_session.execute(text(f'SET search_path TO "{current_user["tenant"]}"'))
@@ -70,7 +72,7 @@ async def get_user_documents(
 async def get_document_status(
     document_id: str,
     current_user: dict = Depends(get_current_user),
-    db_session: AsyncSession = Depends(get_unscoped_db_session)
+    db_session: AsyncSession = Depends(get_db_tenant)
 ):
     try:
         await db_session.execute(text(f'SET search_path TO "{current_user["tenant"]}"'))
@@ -96,7 +98,7 @@ async def upload_document(
     file: UploadFile = File(...),
     category_id: str = Form(...),
     current_user: dict = Depends(get_current_user),
-    db_session: AsyncSession = Depends(get_unscoped_db_session),
+    db_session: AsyncSession = Depends(get_db_tenant),
 ):
     try:
         await db_session.execute(text(f'SET search_path TO "{current_user["tenant"]}"'))
@@ -197,7 +199,7 @@ async def process_document_background(
 async def query_kb(
     query_request: RAGQueryRequest,
     current_user: dict = Depends(get_current_user),
-    db_session: AsyncSession = Depends(get_unscoped_db_session),
+    db_session: AsyncSession = Depends(get_db_tenant),
 ):
     try:
         accessible_categories = await rag_service.get_accessible_categories(
@@ -242,7 +244,7 @@ async def query_kb(
 async def chat_with_kb(
     chat_request: RAGChatRequest,
     current_user: dict = Depends(get_current_user),
-    db_session: AsyncSession = Depends(get_unscoped_db_session),
+    db_session: AsyncSession = Depends(get_db_tenant),
 ):
     try:
         # Ensure tenant search path for tenant-scoped tables

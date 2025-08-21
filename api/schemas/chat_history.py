@@ -59,3 +59,19 @@ class ChatSendResponse(BaseModel):
     sources: List[str] = []
     total_sources: int
     processing_time_ms: float
+
+
+# --- Schema for initiating a new chat ---
+class ChatInitiateRequest(BaseModel):
+    query: str = Field(..., min_length=1, description="The first message to send in the new chat")
+    tab_name: Optional[str] = Field(None, description="Optional name for the chat tab. If not provided, will be auto-generated from the query")
+    top_k: int = Field(default=5, ge=1, le=20)
+    model: str = Field(default="openai", description="LLM model to use: 'openai' or 'google'")
+
+
+class ChatInitiateResponse(BaseModel):
+    tab: ChatTabRead
+    message: ChatHistoryRead
+    sources: List[str] = []
+    total_sources: int
+    processing_time_ms: float

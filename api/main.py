@@ -17,6 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.models.knowledge_base import KnowledgeBase
 from api.models.audit_log import AuditLogBase
 from api.models.category import Category
+from api.models.vector_doc import VectorDoc
 from api.routers.reserved_subdomain_router import router as reserved_subdomain_router
 
 @asynccontextmanager
