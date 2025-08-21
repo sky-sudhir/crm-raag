@@ -18,6 +18,8 @@ from api.schemas.rag_schemas import (
 from api.services.rag_service import RAGService
 from api.services.llm_service import LLMService
 from api.middleware.jwt_middleware import get_current_user
+from api.services.chat_service import ChatHistoryService
+from api.schemas.chat_history import ChatHistoryCreate
 
 logger = logging.getLogger(__name__)
 
@@ -243,6 +245,8 @@ async def chat_with_kb(
     db_session: AsyncSession = Depends(get_unscoped_db_session),
 ):
     try:
+        # Ensure tenant search path for tenant-scoped tables
+        await db_session.execute(text(f'SET search_path TO "{current_user["tenant"]}"'))
         accessible_categories = await rag_service.get_accessible_categories(
             current_user["sub"], current_user["tenant"], db_session
         )
@@ -253,8 +257,34 @@ async def chat_with_kb(
             chat_request.query, [], accessible_categories, db_session, chat_request.top_k
         )
 
+        # Build or reuse a default chat tab per user and build history context
+        chat_service = ChatHistoryService(db_session)
+        tabs = await chat_service.list_chat_tabs(user_id=current_user["sub"]) 
+        default_tab = None
+        for t in tabs:
+            if getattr(t, "name", None) == "KB Chat":
+                default_tab = t
+                break
+        if default_tab is None:
+            default_tab = await chat_service.create_chat_tab(name="KB Chat", user_id=current_user["sub"]) 
+
+        history_context = await chat_service.build_history_context(default_tab.id)
+
         llm_service.model = chat_request.model
-        answer = await llm_service.generate_response(chat_request.query, search_results)
+        answer = await llm_service.generate_response(chat_request.query, search_results, history_context)
+
+        # Persist this turn and link to the session
+        await chat_service.append_message_to_tab(
+            default_tab.id,
+            ChatHistoryCreate(
+                question=chat_request.query,
+                answer=answer,
+                citation=None,
+                latency=None,
+                token_prompt=None,
+                token_completion=None,
+            ),
+        )
 
         return RAGChatResponse(
             query=chat_request.query,

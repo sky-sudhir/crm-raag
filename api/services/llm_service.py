@@ -1,6 +1,6 @@
 import os
 import logging
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from langchain_openai import ChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.schema import HumanMessage, SystemMessage
@@ -49,9 +49,10 @@ class LLMService:
         return self._llm
     
     async def generate_response(
-        self, 
-        query: str, 
-        search_results: List[Tuple[VectorDocument, float]]
+        self,
+        query: str,
+        search_results: List[Tuple[VectorDocument, float]],
+        history_context: Optional[str] = None,
     ) -> str:
         """Generate a response using the LLM based on retrieved documents."""
         try:
@@ -64,17 +65,20 @@ class LLMService:
                 for i, (doc, score) in enumerate(search_results)
             ])
             
+            # Optional prior conversation context
+            conversation = ""
+            if history_context:
+                conversation = f"\n\nConversation so far (chronological):\n{history_context}"
+
             # Create system prompt
-            system_prompt = f"""You are a helpful assistant that answers questions based on the provided context. 
-            Use only the information from the context to answer the question. If the context doesn't contain 
-            enough information to answer the question, say so.
-
-            Context:
-            {context}
-
-            Question: {query}
-
-            Answer:"""
+            system_prompt = (
+                "You are a helpful assistant that answers questions based on the provided context. "
+                "Use only the information from the context to answer the question. If the context doesn't contain "
+                "enough information to answer the question, say so.\n\n"
+                f"Context:\n{context}{conversation}\n\n"
+                f"Question: {query}\n\n"
+                "Answer:"
+            )
             
             # Generate response
             messages = [
