@@ -13,6 +13,8 @@ from api.schemas.chat_history import (
     ChatTabRead,
     ChatSendRequest,
     ChatSendResponse,
+    ChatInitiateRequest,
+    ChatInitiateResponse,
 )
 from api.services.chat_service import ChatHistoryService
 from api.middleware.jwt_middleware import get_current_user
@@ -130,4 +132,66 @@ async def send_message(
         sources=[doc.chunk_text for doc, _ in search_results],
         total_sources=len(search_results),
         processing_time_ms=0.0,  # could be measured if needed
+    )
+
+
+@router.post("/initiate", response_model=ChatInitiateResponse, summary="Initiate a new chat with first message")
+async def initiate_new_chat(
+    req: ChatInitiateRequest,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_tenant),
+):
+    """
+    Initiates a new chat by creating a new tab and sending the first message.
+    This combines tab creation and first message sending in a single operation.
+    """
+    import time
+    start_time = time.time()
+    
+    # Generate tab name if not provided (use first 50 chars of query)
+    tab_name = req.tab_name or req.query[:50] + ("..." if len(req.query) > 50 else "")
+    
+    # RAG: get accessible categories for this user and search
+    rag_service = RAGService(embedding_model="google", api_key=None)
+    accessible_categories = await rag_service.get_accessible_categories(
+        current_user["sub"], current_user["tenant"], db
+    )
+    if not accessible_categories:
+        raise HTTPException(status_code=403, detail="No accessible categories found")
+
+    search_results = await rag_service.search_similar_documents(
+        req.query,
+        [current_user["role"]],
+        accessible_categories,
+        db,
+        req.top_k,
+    )
+
+    # LLM generate (no history context for first message)
+    llm = LLMService(model=req.model)
+    answer = await llm.generate_response(req.query, search_results, "")
+
+    # Create chat tab and first message in single transaction
+    service = ChatHistoryService(db)
+    tab, message = await service.initiate_new_chat(
+        user_id=current_user["sub"],
+        tab_name=tab_name,
+        first_message=ChatHistoryCreate(
+            question=req.query,
+            answer=answer,
+            citation=None,
+            latency=None,
+            token_prompt=None,
+            token_completion=None,
+        ),
+    )
+
+    processing_time = (time.time() - start_time) * 1000  # Convert to milliseconds
+
+    return ChatInitiateResponse(
+        tab=tab,
+        message=message,
+        sources=[doc.chunk_text for doc, _ in search_results],
+        total_sources=len(search_results),
+        processing_time_ms=processing_time,
     )
