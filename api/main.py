@@ -59,7 +59,8 @@ app = FastAPI(
     title="CRM APP",
     description="CRM APP",
     version="3.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    dependencies=[Depends(get_tenant_id)]
 )
 
 origin_regex = r"^https?:\/\/((localhost(:\d+)?)|([a-z0-9-]+\.redagent\.dev))$"
@@ -71,7 +72,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*", "X-Tenant-ID"],
 )
-app = FastAPI(dependencies=[Depends(get_tenant_id)])
 app.add_middleware(TenantMiddleware)
 
 @app.exception_handler(HTTPException)
