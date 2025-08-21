@@ -1,5 +1,5 @@
 import traceback
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from contextlib import asynccontextmanager
 from sqlalchemy import text
@@ -12,7 +12,7 @@ from api.routers.admin_router import router as admin_router
 from api.routers.kb_router import router as kb_router
 from api.routers.category_router import router as category_router
 from api.utils.util_error import ErrorResponse
-from api.middleware.tenant import TenantMiddleware
+from api.middleware.tenant import TenantMiddleware, get_tenant_id
 from fastapi.middleware.cors import CORSMiddleware
 from api.models.knowledge_base import KnowledgeBase
 from api.models.audit_log import AuditLogBase
@@ -71,7 +71,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*", "X-Tenant-ID"],
 )
-
+app = FastAPI(dependencies=[Depends(get_tenant_id)])
 app.add_middleware(TenantMiddleware)
 
 @app.exception_handler(HTTPException)
