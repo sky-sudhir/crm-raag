@@ -63,12 +63,13 @@ app = FastAPI(
     dependencies=[Depends(get_tenant_id)]
 )
 
-origin_regex = r"^https?:\/\/((localhost(:\d+)?)|([a-z0-9-]+\.redagent\.dev))$"
+# origin_regex = r"^https?:\/\/((localhost(:\d+)?)|([a-z0-9-]+\.redagent\.dev))$"
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=origin_regex,
+    # allow_origin_regex=origin_regex,
     allow_credentials=True,
+    allow_origins = ["*"],
     allow_methods=["*"],
     allow_headers=["*", "X-Tenant-ID"],
 )
