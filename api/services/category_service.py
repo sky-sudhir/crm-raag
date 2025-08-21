@@ -23,7 +23,7 @@ class CategoryService:
         await self.session.commit()
         await self.session.refresh(category)
         # return CategoryRead.model_validate(category)
-        return APIResponse(data=category,message="Created Successfully")
+        return category
 
     async def get_category_by_id(self, category_id: str) -> Optional[CategoryRead]:
         """Get a category by ID."""
@@ -31,7 +31,7 @@ class CategoryService:
         category = result.scalar_one_or_none()
         if not category:
             raise HTTPException(status_code=404, detail="Category not found")
-        return APIResponse(data=category,message="Retrived Successfully")
+        return category
 
 
     async def get_category_by_name(self, name: str) -> Optional[CategoryRead]:
@@ -39,14 +39,14 @@ class CategoryService:
         result = await self.session.execute(select(Category).where(Category.name == name))
         category = result.scalar_one_or_none()
         # return CategoryRead.model_validate(category) if category else None
-        return APIResponse(data=category,message="Retrived Successfully")
+        return category
 
 
     async def get_all_categories(self) -> List[CategoryRead]:
         """Get all categories."""
         result = await self.session.execute(select(Category))
         categories = result.scalars().all()
-        return APIResponse(data=categories,message="Retrived Successfully")
+        return categories
 
 
     async def update_category(self, category_id: str, category_data: CategoryUpdate) -> CategoryRead:
@@ -68,7 +68,7 @@ class CategoryService:
 
         await self.session.commit()
         await self.session.refresh(category)
-        return APIResponse(data=category,message="Updated Successfully")
+        return category
 
 
     async def delete_category(self, category_id: str) -> bool:
@@ -80,5 +80,5 @@ class CategoryService:
 
         await self.session.execute(delete(Category).where(Category.id == category_id))
         await self.session.commit()
-        return APIResponse(data=None,message="Deleted Successfully")
+        return True
 
