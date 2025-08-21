@@ -8,16 +8,26 @@ from typing import List, Optional
 
 from api.models.organization import Organization
 from api.models.otp import OTP
-from api.models.user import User
-from api.models.category import Category
+from api.models.user import User, get_user_model
+from api.models.category import Category, get_category_model
 from api.schemas.user import UserCreate, UserUpdate, UserRead
 from api.utils.email_sender import send_email
 from api.utils.util_response import APIResponse
 from api.utils.security import hash_password, verify_password
+from api.db.tenant import tenant_schema
 
 class UserService:
     def __init__(self, session: AsyncSession):
         self.session = session
+        # Get the current tenant schema and initialize dynamic models
+        self.schema_name = tenant_schema.get()
+        if self.schema_name != "public":
+            self.UserModel = get_user_model(self.schema_name)
+            # Get the Category model from the same registry as the User model
+            self.CategoryModel = self.UserModel._Category
+        else:
+            self.UserModel = User
+            self.CategoryModel = Category
 
 
     async def create_user(self, user_data: UserCreate) -> UserRead:
@@ -29,7 +39,7 @@ class UserService:
         # Validate categories exist
         if user_data.category_ids:
             categories = await self.session.execute(
-                select(Category).where(Category.id.in_(user_data.category_ids))
+                select(self.CategoryModel).where(self.CategoryModel.id.in_(user_data.category_ids))
             )
             found_categories = categories.scalars().all()
             if len(found_categories) != len(user_data.category_ids):
@@ -39,7 +49,7 @@ class UserService:
         hashed_password = hash_password(user_data.password)
         
         # Create user (is_owner is always False for CRUD created users)
-        user = User(
+        user = self.UserModel(
             name=user_data.name,
             email=user_data.email,
             password=hashed_password,
@@ -57,7 +67,7 @@ class UserService:
             
             # Get categories
             categories_result = await self.session.execute(
-                select(Category).where(Category.id.in_(user_data.category_ids))
+                select(self.CategoryModel).where(self.CategoryModel.id.in_(user_data.category_ids))
             )
             categories_list = list(categories_result.scalars().all())
             
@@ -69,12 +79,12 @@ class UserService:
         
         curr_user= await self.get_user_by_id(user.id)
 
-        return APIResponse(data=curr_user,message="Created Successfully")
+        return curr_user
     
     async def get_user_by_id(self, user_id: str) -> UserRead:
         """Get a user by ID with categories."""
         result = await self.session.execute(
-            select(User).options(selectinload(User.categories)).where(User.id == user_id)
+            select(self.UserModel).options(selectinload(self.UserModel.categories)).where(self.UserModel.id == user_id)
         )
         user = result.scalar_one_or_none()
         if not user:
@@ -91,13 +101,13 @@ class UserService:
             "updated_at": user.updated_at,
             "categories": [{"id": cat.id, "name": cat.name} for cat in user.categories]
         }
-        return APIResponse(data=user_dict,message="Retrived Successfully")
+        return user_dict
     
 
     async def get_user_by_email(self, email: str) -> UserRead:
         """Get a user by email with categories."""
         result = await self.session.execute(
-            select(User).options(selectinload(User.categories)).where(User.email == email)
+            select(self.UserModel).options(selectinload(self.UserModel.categories)).where(self.UserModel.email == email)
         )
         user = result.scalar_one_or_none()
         if not user:
@@ -114,19 +124,19 @@ class UserService:
             "updated_at": user.updated_at,
             "categories": [{"id": cat.id, "name": cat.name} for cat in user.categories]
         }
-        return APIResponse(data=user_dict,message="Retrived Successfully")
+        return user_dict
 
 
-    async def get_user_by_email_internal(self, email: str) -> Optional[User]:
+    async def get_user_by_email_internal(self, email: str):
         """Internal method to get user by email without schema conversion."""
-        result = await self.session.execute(select(User).where(User.email == email))
+        result = await self.session.execute(select(self.UserModel).where(self.UserModel.email == email))
         result= result.scalar_one_or_none()
-        return APIResponse(data=result,message="Retrived Successfully")
+        return result
 
     async def get_all_users(self) -> List[UserRead]:
         """Get all users with their categories."""
         result = await self.session.execute(
-            select(User).options(selectinload(User.categories))
+            select(self.UserModel).options(selectinload(self.UserModel.categories))
         )
         users = result.scalars().all()
         
@@ -144,13 +154,13 @@ class UserService:
             }
             user_list.append(UserRead.model_validate(user_dict))
         
-        return APIResponse(data=user_list,message="Retrived Successfully")
+        return user_list
 
 
     async def update_user(self, user_id: str, user_data: UserUpdate) -> UserRead:
         """Update a user."""
         result = await self.session.execute(
-            select(User).options(selectinload(User.categories)).where(User.id == user_id)
+            select(self.UserModel).options(selectinload(self.UserModel.categories)).where(self.UserModel.id == user_id)
         )
         user = result.scalar_one_or_none()
         if not user:
@@ -166,7 +176,7 @@ class UserService:
         if user_data.category_ids is not None:
             if user_data.category_ids:  # Not empty list
                 categories = await self.session.execute(
-                    select(Category).where(Category.id.in_(user_data.category_ids))
+                    select(self.CategoryModel).where(self.CategoryModel.id.in_(user_data.category_ids))
                 )
                 found_categories = categories.scalars().all()
                 if len(found_categories) != len(user_data.category_ids):
@@ -186,7 +196,7 @@ class UserService:
         if user_data.category_ids is not None:
             if user_data.category_ids:
                 categories = await self.session.execute(
-                    select(Category).where(Category.id.in_(user_data.category_ids))
+                    select(self.CategoryModel).where(self.CategoryModel.id.in_(user_data.category_ids))
                 )
                 user.categories = categories.scalars().all()
             else:
@@ -196,12 +206,12 @@ class UserService:
         await self.session.refresh(user)
         
         curr_user= await self.get_user_by_id(user.id)
-        return APIResponse(data=curr_user,message="UPdated Successfully")
+        return curr_user
 
 
     async def delete_user(self, user_id: str) -> bool:
         """Delete a user."""
-        result = await self.session.execute(select(User).where(User.id == user_id))
+        result = await self.session.execute(select(self.UserModel).where(self.UserModel.id == user_id))
         user = result.scalar_one_or_none()
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
@@ -210,7 +220,7 @@ class UserService:
         if user.is_owner:
             raise HTTPException(status_code=400, detail="Cannot delete owner user")
 
-        await self.session.execute(delete(User).where(User.id == user_id))
+        await self.session.execute(delete(self.UserModel).where(self.UserModel.id == user_id))
         await self.session.commit()
-        return APIResponse(data=None,message="Deleted Successfully")
+        return True
 

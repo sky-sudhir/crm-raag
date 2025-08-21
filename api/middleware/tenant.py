@@ -1,4 +1,4 @@
-from fastapi import Request, HTTPException
+from fastapi import Header, Request, HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy import select, text
 from api.db.tenant import tenant_schema 
@@ -40,3 +40,9 @@ class TenantMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         tenant_schema.reset(token)
         return response
+    
+
+
+
+async def get_tenant_id(x_tenant_id: str = Header(None, alias="X-Tenant-ID")):
+    return x_tenant_id
