@@ -38,10 +38,11 @@ async def get_current_user(
     try:
         payload = decode_jwt_token(token=token)
         current_schema=tenant_schema.get()
+        print(current_schema,tenant_schema.get(),"TENANTT")
         if current_schema!=payload.get("tenant"):
             raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid Token",
+            detail="Invalid Token 1",
             headers={"WWW-Authenticate": "Bearer"},
             )
         else:
