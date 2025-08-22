@@ -119,7 +119,7 @@ class AuthService:
             self.session.add(owner_user)
             await self.session.flush()
         await self.session.refresh(new_org)
-        token = create_jwt_token(user_id=owner_user.id, email=owner_user.email, role=owner_user.role, tenant=new_org.subdomain)
+        token = create_jwt_token(user_id=owner_user.id, email=owner_user.email, role=owner_user.role, tenant=new_org.schema_name)
         # // tenant = subdomain
         return APIResponse(
             message="Organization and owner created successfully",
