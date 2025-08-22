@@ -303,7 +303,8 @@ async def query_rag(
             user_roles,
             accessible_categories,
             db_session,
-            query_request.top_k
+            query_request.top_k,
+            current_user["tenant"]
         )
         
         # Calculate processing time
@@ -366,7 +367,8 @@ async def chat_with_rag(
             user_roles,
             accessible_categories,
             db_session,
-            chat_request.top_k
+            chat_request.top_k,
+            current_user["tenant"]
         )
         
         # Generate response using LLM

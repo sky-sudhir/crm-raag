@@ -59,5 +59,6 @@ def get_knowledge_base_model(schema: str, *, DynamicBase=None):
 
 class KnowledgeBase(Base, KnowledgeBaseBase):
 	__tablename__ = "knowledge_base"
+	# No __table_args__ means this is a blueprint for tenant schemas
 	# Back-populates from VectorDoc
 	vector_docs = relationship("VectorDoc", back_populates="file", cascade="all, delete-orphan")

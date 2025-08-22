@@ -13,7 +13,7 @@ from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from api.models.category import Category
 from api.models.user import user_categories, User
 from api.models.knowledge_base import KnowledgeBase, KBStatus
-from api.models.vector_doc import VectorDoc
+from api.models.vector_doc import VectorDoc, get_vector_doc_model
 from api.schemas.rag_schemas import VectorDocumentCreate
 from api.db.database import AsyncSessionLocal
 from sqlalchemy import select, and_, or_, text
@@ -103,7 +103,8 @@ class RAGService:
         file_content: str, 
         category_id: str,
         metadata: Dict[str, Any],
-        db_session: AsyncSession
+        db_session: AsyncSession,
+        tenant_schema: str = "public"
     ) -> List[VectorDocumentCreate]:
         """
         Process document content into chunks and generate embeddings.
@@ -130,7 +131,7 @@ class RAGService:
             vector_docs = []
             for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
                 # Check if this file's chunk already exists by (file_id, chunk_id)
-                exists = await self._check_chunk_exists(file_id, i, db_session)
+                exists = await self._check_chunk_exists(file_id, i, db_session, tenant_schema)
                 if exists:
                     logger.info(f"Chunk {i} already exists for file {file_id}, skipping")
                     continue
@@ -172,12 +173,18 @@ class RAGService:
             logger.error(f"Error generating embeddings: {str(e)}")
             raise
     
-    async def _check_chunk_exists(self, file_id: str, chunk_id: int, db_session: AsyncSession) -> bool:
+    async def _check_chunk_exists(self, file_id: str, chunk_id: int, db_session: AsyncSession, tenant_schema: str = "public") -> bool:
         """Check if a chunk for this file and index already exists."""
         try:
             # Note: This method assumes the search_path is already set by the caller
+            # Create dynamic model for tenant schema
+            if tenant_schema != "public":
+                VectorDocModel = get_vector_doc_model(tenant_schema)
+            else:
+                VectorDocModel = VectorDoc
+                
             result = await db_session.execute(
-                select(VectorDoc.id).where(and_(VectorDoc.file_id == file_id, VectorDoc.chunk_id == chunk_id))
+                select(VectorDocModel.id).where(and_(VectorDocModel.file_id == file_id, VectorDocModel.chunk_id == chunk_id))
             )
             return result.scalar_one_or_none() is not None
         except Exception as e:
@@ -189,7 +196,8 @@ class RAGService:
         vector_docs: List[VectorDocumentCreate], 
         user_id: str,
         category_id: str,
-        db_session: AsyncSession
+        db_session: AsyncSession,
+        tenant_schema: str = "public"
     ) -> int:
         """
         Store vector documents in the database.
@@ -207,10 +215,18 @@ class RAGService:
             # Note: This method assumes the search_path is already set by the caller
             # Ensure schema has expected columns/types
             await self._ensure_vector_doc_schema(db_session)
+            
+            # Create dynamic model for tenant schema
+            if tenant_schema != "public":
+                # Create VectorDocModel only - avoid creating other models that might already exist
+                VectorDocModel = get_vector_doc_model(tenant_schema)
+            else:
+                VectorDocModel = VectorDoc
+                
             stored_count = 0
             for vector_doc in vector_docs:
                 # Create VectorDocument model instance
-                db_vector_doc = VectorDoc(
+                db_vector_doc = VectorDocModel(
                     user_id=user_id,
                     category_id=category_id,
                     file_id=vector_doc.file_id,
@@ -262,7 +278,8 @@ class RAGService:
         user_roles: List[str],
         category_ids: List[str],
         db_session: AsyncSession,
-        top_k: int = 5
+        top_k: int = 5,
+        tenant_schema: str = "public"
     ) -> List[Tuple[VectorDoc, float]]:
         """
         Search for similar documents based on query and user access.
@@ -286,10 +303,16 @@ class RAGService:
             if hasattr(query_vector, "tolist"):
                 query_vector = query_vector.tolist()
             
+            # Create dynamic model for tenant schema
+            if tenant_schema != "public":
+                VectorDocModel = get_vector_doc_model(tenant_schema)
+            else:
+                VectorDocModel = VectorDoc
+                
             # Build the search query with role-based access control
-            search_query = select(VectorDoc).where(
+            search_query = select(VectorDocModel).where(
                 and_(
-                    VectorDoc.category_id.in_(category_ids),
+                    VectorDocModel.category_id.in_(category_ids),
                     # Add vector similarity search here when pgvector is properly configured
                 )
             ).limit(top_k)

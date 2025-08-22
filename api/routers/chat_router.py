@@ -108,6 +108,7 @@ async def send_message(
         accessible_categories,
         db,
         req.top_k,
+        current_user["tenant"],
     )
 
     # LLM generate with history context
@@ -165,6 +166,7 @@ async def initiate_new_chat(
         accessible_categories,
         db,
         req.top_k,
+        current_user["tenant"],
     )
 
     # LLM generate (no history context for first message)
