@@ -59,6 +59,8 @@ def decode_jwt_token(token: str) -> dict:
     print("Decoding JWT token...",token,JWT_SECRET_KEY)
     try:
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=["HS256"])
+        print("Decoding JWT token1...",token,JWT_SECRET_KEY,payload)
+
         return payload
     except jwt.ExpiredSignatureError:
         raise HTTPException(
