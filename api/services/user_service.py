@@ -86,7 +86,7 @@ class UserService:
         result = await self.session.execute(
             select(self.UserModel).options(selectinload(self.UserModel.categories)).where(self.UserModel.id == user_id)
         )
-        user = result.scalar_one_or_none()
+        user = result.unique().scalar_one_or_none()
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
@@ -109,7 +109,7 @@ class UserService:
         result = await self.session.execute(
             select(self.UserModel).options(selectinload(self.UserModel.categories)).where(self.UserModel.email == email)
         )
-        user = result.scalar_one_or_none()
+        user = result.unique().scalar_one_or_none()
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
@@ -130,7 +130,7 @@ class UserService:
     async def get_user_by_email_internal(self, email: str):
         """Internal method to get user by email without schema conversion."""
         result = await self.session.execute(select(self.UserModel).where(self.UserModel.email == email))
-        result= result.scalar_one_or_none()
+        result= result.unique().scalar_one_or_none()
         return result
 
     async def get_all_users(self) -> List[UserRead]:
@@ -162,7 +162,7 @@ class UserService:
         result = await self.session.execute(
             select(self.UserModel).options(selectinload(self.UserModel.categories)).where(self.UserModel.id == user_id)
         )
-        user = result.scalar_one_or_none()
+        user = result.unique().scalar_one_or_none()
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
@@ -212,7 +212,7 @@ class UserService:
     async def delete_user(self, user_id: str) -> bool:
         """Delete a user."""
         result = await self.session.execute(select(self.UserModel).where(self.UserModel.id == user_id))
-        user = result.scalar_one_or_none()
+        user = result.unique().scalar_one_or_none()
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
