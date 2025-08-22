@@ -69,7 +69,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     # allow_origin_regex=origin_regex,
-    allow_credentials=True,
+    allow_credentials=False,
     allow_origins = ["*"],
     allow_methods=["*"],
     allow_headers=["*", "X-Tenant-ID"],
