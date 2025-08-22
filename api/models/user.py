@@ -36,9 +36,10 @@ class UserBase:
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
-def get_user_model(schema: str):
+def get_user_model(schema: str, DynamicBase=None):
     # Single registry for ALL per-schema classes
-    DynamicBase = declarative_base()
+    if DynamicBase is None:
+        DynamicBase = declarative_base()
 
     # Build the per-schema dependent classes in THE SAME registry
     CategoryForSchema = get_category_model(schema, DynamicBase=DynamicBase)
